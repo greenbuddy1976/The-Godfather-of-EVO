@@ -1,4 +1,4 @@
-name: Verified signed Android release
+name: Verified Android build and protected signing
 
 on:
   push:
@@ -18,6 +18,7 @@ jobs:
       SOURCE_ZIP: source/The-Godfather-of-EVO-source.zip
       FRESH_ROOT: ${{ github.workspace }}/.ci-fresh
       REPORT_ROOT: ${{ github.workspace }}/release-reports
+      EXPECTED_CERT_SHA256: fc1f41829114f92d64de6f11f69927aecb97e701250146472a9bc77d86ed832f
 
     steps:
       - name: Checkout immutable source
@@ -93,13 +94,28 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+      - name: Detect protected signing configuration
+        id: signing
+        shell: bash
+        env:
+          ACEVO_KEYSTORE_B64: ${{ secrets.ACEVO_KEYSTORE_B64 }}
+          ACEVO_KEYSTORE_PASSWORD: ${{ secrets.ACEVO_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -n "$ACEVO_KEYSTORE_B64" && -n "$ACEVO_KEYSTORE_PASSWORD" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Protected signing secrets are not configured. Source, tests, lint and unsigned APK remain fully verified."
+          fi
+
       - name: Reconstruct and verify release keystore
+        if: steps.signing.outputs.available == 'true'
         id: keystore
         shell: bash
         env:
           ACEVO_KEYSTORE_B64: ${{ secrets.ACEVO_KEYSTORE_B64 }}
           ACEVO_KEYSTORE_PASSWORD: ${{ secrets.ACEVO_KEYSTORE_PASSWORD }}
-          EXPECTED_CERT_SHA256: ${{ vars.EXPECTED_CERT_SHA256 }}
         run: |
           set -euo pipefail
           test -n "$ACEVO_KEYSTORE_B64"
@@ -119,6 +135,7 @@ jobs:
           echo "fingerprint=$ACTUAL_CERT" >> "$GITHUB_OUTPUT"
 
       - name: Build signed release from extracted source
+        if: steps.signing.outputs.available == 'true'
         shell: bash
         env:
           ACEVO_KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
@@ -128,9 +145,8 @@ jobs:
           gradle -p "$FRESH_ROOT/project" --no-daemon --no-build-cache assembleRelease
 
       - name: Verify APK signer and assemble reports
+        if: steps.signing.outputs.available == 'true'
         shell: bash
-        env:
-          EXPECTED_CERT_SHA256: ${{ vars.EXPECTED_CERT_SHA256 }}
         run: |
           set -euo pipefail
           APK="$FRESH_ROOT/project/app/build/outputs/apk/release/app-release.apk"
@@ -152,9 +168,23 @@ jobs:
           printf '%s\n' "$APK_CERT" > "$REPORT_ROOT/apk/CERT_SHA256.txt"
 
       - name: Upload signed APK and verification reports
+        if: steps.signing.outputs.available == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: The-Godfather-of-EVO-verified-release
           path: release-reports/
           if-no-files-found: error
           retention-days: 30
+
+      - name: Record verified unsigned fallback
+        if: steps.signing.outputs.available != 'true'
+        shell: bash
+        run: |
+          {
+            echo "## Verified build completed"
+            echo
+            echo "- Source bundle: verified"
+            echo "- Unit tests and Android lint: passed"
+            echo "- Unsigned release candidate: uploaded for protected external signing"
+            echo "- Repository signing secrets: not configured; signed-release steps skipped without hiding the condition"
+          } >> "$GITHUB_STEP_SUMMARY"
