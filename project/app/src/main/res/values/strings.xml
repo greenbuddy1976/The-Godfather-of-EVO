@@ -3,4 +3,7 @@
     <string name="app_name">The Godfather of EVO</string>
     <string name="app_subtitle">Assetto Corsa EVO Setup Engineer</string>
     <string name="copyright">© Greenbuddy1976</string>
+    <string name="no_vehicle_selected">Kein Fahrzeug ausgewählt</string>
+    <string name="carrier_optional">Optional: eine im Spiel gespeicherte .carsetup desselben Autos. Nur die Binärstruktur wird benutzt; sämtliche verstellbaren Zahlen werden verworfen.</string>
+    <string name="carrier_verified">Verifiziert: %1$s\nSignatur: %2$s\nSHA-256: %3$s\nNur Struktur – gespeicherte verstellbare Zahlen werden verworfen.</string>
 </resources>

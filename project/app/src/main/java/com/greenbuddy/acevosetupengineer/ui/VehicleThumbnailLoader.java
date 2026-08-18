@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
@@ -134,7 +135,7 @@ public final class VehicleThumbnailLoader implements AutoCloseable {
                 throw new IOException("Bildserver HTTP " + connection.getResponseCode());
             }
             String contentType = connection.getContentType();
-            if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
+            if (contentType == null || !contentType.toLowerCase(Locale.ROOT).startsWith("image/")) {
                 throw new IOException("Antwort ist kein Bild");
             }
             int declaredLength = connection.getContentLength();

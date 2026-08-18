@@ -124,7 +124,7 @@ public final class MainActivity extends Activity {
         TextView title = text("THE GODFATHER OF EVO", 25, TEXT);
         title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(title);
-        root.addView(text("Assetto Corsa EVO Setup Engineer", 15, MUTED), matchWrap(0, dp(2)));
+        root.addView(text(getString(R.string.app_subtitle), 15, MUTED), matchWrap(0, dp(2)));
         TextView version = text("VERIFIZIERTER INHALTSSTAND " + catalog.gameVersion, 12, ACCENT);
         version.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         root.addView(version, matchWrap(0, dp(18)));
@@ -157,8 +157,8 @@ public final class MainActivity extends Activity {
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
                 vehicleThumbnail.setImageResource(R.drawable.ic_car_placeholder);
-                vehicleThumbnail.setContentDescription("Kein Fahrzeug ausgewählt");
-                selectedVehicleName.setText("Kein Fahrzeug ausgewählt");
+                vehicleThumbnail.setContentDescription(getString(R.string.no_vehicle_selected));
+                selectedVehicleName.setText(R.string.no_vehicle_selected);
             }
         });
         showSelectedVehicle();
@@ -170,8 +170,7 @@ public final class MainActivity extends Activity {
         Button carrierButton = button("STRUKTURTRÄGER FÜR SELF-CALC WÄHLEN", CARD);
         carrierButton.setOnClickListener(ignored -> beginCarrierImport());
         root.addView(carrierButton, matchWrap(0, dp(5)));
-        carrierStatus = text("Optional: eine im Spiel gespeicherte .carsetup desselben Autos. "
-                + "Nur die Binärstruktur wird benutzt; sämtliche verstellbaren Zahlen werden verworfen.", 12, MUTED);
+        carrierStatus = text(getString(R.string.carrier_optional), 12, MUTED);
         root.addView(carrierStatus, matchWrap(0, dp(18)));
 
         root.addView(sectionTitle("Setup-Stil"));
@@ -214,7 +213,7 @@ public final class MainActivity extends Activity {
         exportButton.setOnClickListener(ignored -> beginExport());
         root.addView(exportButton, matchWrap(0, dp(24)));
 
-        TextView copyright = text("© Greenbuddy1976", 12, MUTED);
+        TextView copyright = text(getString(R.string.copyright), 12, MUTED);
         copyright.setGravity(Gravity.CENTER_HORIZONTAL);
         root.addView(copyright);
         scroll.addView(root);
@@ -477,9 +476,8 @@ public final class MainActivity extends Activity {
             structureCarrierBytes = bytes;
             structureCarrierSignature = inspection.vehicleSignature;
             structureCarrierSha256 = Hashing.sha256(bytes);
-            carrierStatus.setText("Verifiziert: " + vehicle.name + "\nSignatur: "
-                    + structureCarrierSignature + "\nSHA-256: " + structureCarrierSha256
-                    + "\nNur Struktur – gespeicherte verstellbare Zahlen werden verworfen.");
+            carrierStatus.setText(getString(R.string.carrier_verified, vehicle.name,
+                    structureCarrierSignature, structureCarrierSha256));
             carrierStatus.setTextColor(TEXT);
             clearPendingExport();
         } catch (Exception failure) {
@@ -493,8 +491,7 @@ public final class MainActivity extends Activity {
         structureCarrierSignature = null;
         structureCarrierSha256 = null;
         if (carrierStatus != null) {
-            carrierStatus.setText("Optional: eine im Spiel gespeicherte .carsetup desselben Autos. "
-                    + "Nur die Binärstruktur wird benutzt; sämtliche verstellbaren Zahlen werden verworfen.");
+            carrierStatus.setText(R.string.carrier_optional);
             carrierStatus.setTextColor(MUTED);
         }
         clearPendingExport();

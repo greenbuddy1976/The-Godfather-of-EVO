@@ -95,11 +95,11 @@ public final class SetupsMarketProvider implements LiveProvider {
         }
     }
 
-    private static String encode(String value) {
-        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
+    private static String encode(String value) throws IOException {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8.name()).replace("+", "%20");
     }
 
-    private static String encodePath(String value) {
+    private static String encodePath(String value) throws IOException {
         String[] parts = value.split("/");
         StringBuilder encoded = new StringBuilder();
         for (String part : parts) {
