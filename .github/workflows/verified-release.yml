@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 35
     env:
       SOURCE_ZIP: source/The-Godfather-of-EVO-source.zip
-      FRESH_ROOT: ${{ runner.temp }}/acevo-fresh
+      FRESH_ROOT: ${{ github.workspace }}/.ci-fresh
       REPORT_ROOT: ${{ github.workspace }}/release-reports
 
     steps:
