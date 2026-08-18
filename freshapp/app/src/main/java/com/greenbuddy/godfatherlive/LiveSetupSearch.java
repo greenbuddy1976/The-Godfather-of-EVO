@@ -185,7 +185,7 @@ final class LiveSetupSearch {
                     continue;
                 }
                 setups.add(new SourceSetup(SourceSetup.Source.RACEPLACE,
-                        archive.url + "#" + name, car, track, archive.version, file,
+                        name, car, track, archive.version, file,
                         file, "RacePlace/DTVR Baseline", archive.url, name));
                 zip.closeEntry();
             }
