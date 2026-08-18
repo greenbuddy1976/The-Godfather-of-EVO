@@ -1,0 +1,136 @@
+name: Verified signed Android release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-build-sign:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      SOURCE_ZIP: source/The-Godfather-of-EVO-source.zip
+      FRESH_ROOT: ${{ runner.temp }}/acevo-fresh
+      REPORT_ROOT: ${{ github.workspace }}/release-reports
+
+    steps:
+      - name: Checkout immutable source
+        uses: actions/checkout@v4
+
+      - name: Configure JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Verify source bundle and extract fresh project
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum --check source/source-bundle.sha256
+          mkdir -p "$FRESH_ROOT"
+          unzip -q "$SOURCE_ZIP" -d "$FRESH_ROOT"
+          test -f "$FRESH_ROOT/project/settings.gradle"
+          test -f "$FRESH_ROOT/project/app/build.gradle"
+          test -f "$FRESH_ROOT/project/app/src/main/AndroidManifest.xml"
+          diff -qr --exclude build --exclude .gradle project "$FRESH_ROOT/project"
+
+      - name: Verify inventory, identities, ranges, images and matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/verify_source.py --root "$GITHUB_WORKSPACE" \
+            --report "$REPORT_ROOT/source-verification.json"
+
+      - name: Configure Gradle 8.13 without cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-disabled: true
+
+      - name: Configure Android SDK 35
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned Android platform and build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Run clean verification from extracted source
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --version
+          gradle -p "$FRESH_ROOT/project" --no-daemon --no-build-cache clean testDebugUnitTest lintRelease
+
+      - name: Reconstruct and verify release keystore
+        id: keystore
+        shell: bash
+        env:
+          ACEVO_KEYSTORE_B64: ${{ secrets.ACEVO_KEYSTORE_B64 }}
+          ACEVO_KEYSTORE_PASSWORD: ${{ secrets.ACEVO_KEYSTORE_PASSWORD }}
+          EXPECTED_CERT_SHA256: ${{ vars.EXPECTED_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          test -n "$ACEVO_KEYSTORE_B64"
+          test -n "$ACEVO_KEYSTORE_PASSWORD"
+          test -n "$EXPECTED_CERT_SHA256"
+          KEYSTORE_PATH="$RUNNER_TEMP/acevo-release.jks"
+          printf '%s' "$ACEVO_KEYSTORE_B64" | base64 --decode > "$KEYSTORE_PATH"
+          keytool -list -keystore "$KEYSTORE_PATH" -storepass "$ACEVO_KEYSTORE_PASSWORD" \
+            -alias acevosetup >/dev/null
+          ACTUAL_CERT=$(keytool -list -v -keystore "$KEYSTORE_PATH" \
+            -storepass "$ACEVO_KEYSTORE_PASSWORD" -alias acevosetup \
+            | awk -F': ' '/SHA256:/{print $2; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')
+          EXPECTED_CERT=$(printf '%s' "$EXPECTED_CERT_SHA256" \
+            | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          test "$ACTUAL_CERT" = "$EXPECTED_CERT"
+          echo "path=$KEYSTORE_PATH" >> "$GITHUB_OUTPUT"
+          echo "fingerprint=$ACTUAL_CERT" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed release from extracted source
+        shell: bash
+        env:
+          ACEVO_KEYSTORE_PATH: ${{ steps.keystore.outputs.path }}
+          ACEVO_KEYSTORE_PASSWORD: ${{ secrets.ACEVO_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          gradle -p "$FRESH_ROOT/project" --no-daemon --no-build-cache assembleRelease
+
+      - name: Verify APK signer and assemble reports
+        shell: bash
+        env:
+          EXPECTED_CERT_SHA256: ${{ vars.EXPECTED_CERT_SHA256 }}
+        run: |
+          set -euo pipefail
+          APK="$FRESH_ROOT/project/app/build/outputs/apk/release/app-release.apk"
+          test -s "$APK"
+          APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
+          "$APKSIGNER" verify --verbose --print-certs "$APK" | tee "$RUNNER_TEMP/apksigner.txt"
+          APK_CERT=$(awk -F': ' '/Signer #1 certificate SHA-256 digest:/{print $2; exit}' \
+            "$RUNNER_TEMP/apksigner.txt" | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          EXPECTED_CERT=$(printf '%s' "$EXPECTED_CERT_SHA256" \
+            | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
+          test "$APK_CERT" = "$EXPECTED_CERT"
+          mkdir -p "$REPORT_ROOT/apk" "$REPORT_ROOT/tests" "$REPORT_ROOT/lint"
+          cp "$APK" "$REPORT_ROOT/apk/The-Godfather-of-EVO-1.0.0.apk"
+          cp "$RUNNER_TEMP/apksigner.txt" "$REPORT_ROOT/apk/apksigner.txt"
+          cp -R "$FRESH_ROOT/project/app/build/test-results/testDebugUnitTest/." "$REPORT_ROOT/tests/"
+          cp -R "$FRESH_ROOT/project/app/build/reports/lint-results-release.html" "$REPORT_ROOT/lint/"
+          sha256sum "$REPORT_ROOT/apk/The-Godfather-of-EVO-1.0.0.apk" \
+            "$SOURCE_ZIP" > "$REPORT_ROOT/SHA256SUMS.txt"
+          printf '%s\n' "$APK_CERT" > "$REPORT_ROOT/apk/CERT_SHA256.txt"
+
+      - name: Upload signed APK and verification reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: The-Godfather-of-EVO-verified-release
+          path: release-reports/
+          if-no-files-found: error
+          retention-days: 30
