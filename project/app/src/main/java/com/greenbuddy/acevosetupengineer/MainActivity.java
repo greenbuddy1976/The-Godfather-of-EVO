@@ -87,6 +87,7 @@ public final class MainActivity extends Activity {
     private RangeProfileRepository rangeProfiles;
     private TrackProfileRepository trackProfiles;
     private BundledStructureCarrierRepository bundledCarriers;
+    private AndroidStructureCarrierCache structureCache;
     private LiveSearchCoordinator liveSearch;
     private final ExecutorService setupExecutor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean setupRunning = new AtomicBoolean();
@@ -106,10 +107,11 @@ public final class MainActivity extends Activity {
             rangeProfiles = new RangeProfileRepository(this);
             trackProfiles = new TrackProfileRepository(this);
             bundledCarriers = new BundledStructureCarrierRepository(this);
+            structureCache = new AndroidStructureCarrierCache(this);
             liveSearch = new LiveSearchCoordinator(
                     Arrays.asList(new RacePlacePackageProvider(), new SetupsMarketProvider()),
                     new AndroidExactCache(this),
-                    new AndroidStructureCarrierCache(this),
+                    structureCache,
                     message -> runOnUiThread(() -> setStatus(
                             "LIVE-SUCHE – zwei vollständige Runden\n\n" + message, false)));
             setContentView(buildScreen());
@@ -181,6 +183,9 @@ public final class MainActivity extends Activity {
         root.addView(carrierStatus, matchWrap(0, dp(18)));
 
         root.addView(sectionTitle("Setup-Stil"));
+        root.addView(text("FAST CONTROL ist die Empfehlung für schnell, stabil und berechenbar. "
+                + "Beim Ford Mustang GT3 erzwingt FAST ATTACK auf jedem Layout TC = 1.",
+                12, MUTED), matchWrap(0, dp(9)));
         for (SetupMode mode : SetupMode.values()) root.addView(modeButton(mode), matchWrap(0, dp(9)));
 
         root.addView(sectionTitle("Fine-Tuning – Fahrverhalten beschreiben"), matchWrap(dp(12), dp(5)));
@@ -501,6 +506,15 @@ public final class MainActivity extends Activity {
             structureCarrierBytes = bytes;
             structureCarrierSignature = inspection.vehicleSignature;
             structureCarrierSha256 = Hashing.sha256(bytes);
+            CatalogItem layout = layoutSpinner == null ? null
+                    : (CatalogItem) layoutSpinner.getSelectedItem();
+            if (layout != null && structureCache != null) {
+                SetupRequest cacheRequest = new SetupRequest(
+                        vehicle, layout, SetupMode.FAST_CONTROL, catalog.gameVersion);
+                structureCache.put(cacheRequest, new VerifiedStructureCarrier(
+                        bytes, structureCarrierSha256, structureCarrierSignature,
+                        "Manuell verifizierte Same-Car-Struktur", false));
+            }
             carrierStatus.setText(getString(R.string.carrier_verified, vehicle.name,
                     structureCarrierSignature, structureCarrierSha256));
             carrierStatus.setTextColor(TEXT);

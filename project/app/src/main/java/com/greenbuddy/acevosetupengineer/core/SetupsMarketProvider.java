@@ -70,7 +70,7 @@ public final class SetupsMarketProvider implements LiveProvider {
         connection.setConnectTimeout(12_000);
         connection.setReadTimeout(18_000);
         connection.setRequestProperty("Accept", "application/json, application/octet-stream");
-        connection.setRequestProperty("User-Agent", "The-Godfather-of-EVO/1.0");
+        connection.setRequestProperty("User-Agent", "The-Godfather-of-EVO/1.1");
         if (apiHeaders) {
             connection.setRequestProperty("apikey", PUBLISHABLE_KEY);
         }

@@ -23,14 +23,20 @@ The app is released under AGPL-3.0. Third-party provenance is recorded in
 - Searches RacePlace and SetupsMarket in exactly two complete rounds. A
   candidate is accepted only after version, vehicle, layout, binary signature
   and file-structure verification.
-- Applies the four named driving modes and understood natural-language
+- Applies five purpose-built driving modes and understood natural-language
   feedback (for example, a nervous or sluggish rear axle) only through the
   selected car's verified range and step definitions.
+- Recommends `FAST CONTROL` as the quick, stable all-round setup. `FAST ATTACK`
+  is the hotlap profile; for the Ford Mustang GT3 it enforces TC `1` on every
+  exact layout. `FAST STABLE`, `FAST SAFE` and `FAST LONG RUN` add progressively
+  more rear-axle, braking or stint reserve.
 - If no exact setup exists, it automatically resolves a verified same-car
   structure from the release bundle, the LIVE results or an integrity-checked
-  per-car cache. A user-selected file is only an optional override. Carrier
-  numbers are never model inputs; SELF CALC rewrites every authorized field
-  from the car ranges and exact-layout model and labels the output
+  per-car cache. A user-selected file is only an optional override and, after
+  verification, is remembered for that car across every layout. Carrier
+  numbers are never model inputs; SELF CALC rewrites every verified field that
+  the real same-car protobuf actually serializes, leaves absent fixed controls
+  alone and labels the output
   `ENGINEERING MODEL`.
 - Refuses export if an identity, range, exact layout, writable binary mapping
   or round-trip proof is missing. A refusal is a safety result, not a fallback.
@@ -40,3 +46,6 @@ The complete source/data audit is reproducible with:
 ```bash
 python3 scripts/verify_source.py
 ```
+
+The non-negotiable rebuild prompt and acceptance checklist are recorded in
+[`docs/QUALITY_CONTRACT.md`](docs/QUALITY_CONTRACT.md).

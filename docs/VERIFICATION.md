@@ -25,10 +25,11 @@
 - Provenance: extracted from
   `content/cars/<ks_model>/data/setup/*.carsetuplimits` in the installed game.
 
-Invalid or incomplete ranges are rejected, not repaired. The current source
-contains one missing step (`audi_r8_lms_gt4_evo/rearARB`), one inverted
-differential range (`ktm_x_bow_gt4/diffCoast`) and two inverted spring ranges
-(`mini_jcs_1990`); all affected vehicle profiles are therefore rejected.
+Invalid or incomplete controls are rejected individually, not repaired. The
+current source contains one missing step (`audi_r8_lms_gt4_evo/rearARB`), one
+inverted differential range (`ktm_x_bow_gt4/diffCoast`) and two inverted spring
+ranges (`mini_jcs_1990`). Those four controls are omitted while the remaining
+independently valid controls of the three cars stay available.
 
 ## Exact-layout engineering profiles
 
@@ -61,14 +62,16 @@ A same-car `.carsetup` is accepted only when its decoded signature matches the
 selected exact vehicle. Resolution is automatic: a release-pinned carrier,
 then a LIVE-verified same-car file, then the integrity-checked per-car cache.
 A manually selected file remains an optional override, never a prerequisite.
-The carrier supplies protobuf field placement only. Before export, every field
-in the authorized profile is replaced. Per-wheel fields are written absolutely
-left/right, so stored asymmetry cannot survive as an input. Regression coverage
-proves that carriers with different stored tyre numbers produce the same newly
-generated tyre bytes.
+The carrier supplies protobuf field placement only. Before export, every
+authorized field that the real same-car protobuf serializes is replaced. A
+fixed or absent field (for example front aero on a car that does not serialize
+it) is explicitly audited and skipped instead of blocking every other control.
+Per-wheel fields are written absolutely left/right, so stored asymmetry cannot
+survive as an input. Regression coverage proves that carriers with different
+stored tyre numbers produce the same newly generated tyre bytes.
 
-The current clean-room data contains 65 structurally valid range-model
-identities after the three malformed profiles listed above are rejected.
+The current clean-room data contains 68 usable range-model identities. The four
+malformed individual controls listed above are fail-closed omissions.
 Physical N/m ARB ranges are writable. Click-only ARB rows are omitted until a
 per-car click-to-stiffness table is verified. Brake-pressure and engine-map
 fields are likewise omitted rather than guessed. Offline same-car structure
@@ -135,9 +138,13 @@ unmodified decoded knobs unchanged.
 ## Automated verification and release
 
 `scripts/verify_source.py` fails closed on inventory counts, duplicate IDs,
-thumbnail coverage/hosts, exact layout/profile coverage, all 6,816 vehicle ×
-layout × mode combinations, binary/range identity counts and the pinned range
-dataset SHA-256.
+thumbnail coverage/hosts, exact layout/profile coverage, all 8,520 vehicle ×
+layout × mode routes, binary/range identity counts and the pinned range dataset
+SHA-256. It calculates and range/step-checks 8,160 SELF-CALC routes
+(68 range identities × 24 layouts × 5 modes), verifies 127,560 generated values,
+compares 3,984 FAST CONTROL stability relations and checks Mustang FAST ATTACK
+TC `1` on all 24 layouts. The 360 routes of the three unverified tuned variants
+must refuse rather than borrow the stock variant's limits.
 
 The GitHub workflow verifies the source ZIP hash, extracts a fresh `project/`,
 compares it with the checked-out source, runs Gradle 8.13 without build cache on

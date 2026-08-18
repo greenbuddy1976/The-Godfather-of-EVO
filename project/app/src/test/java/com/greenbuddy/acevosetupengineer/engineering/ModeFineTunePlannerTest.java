@@ -11,7 +11,7 @@ public final class ModeFineTunePlannerTest {
 
     @Test
     public void attackMovesVerifiedStepsTowardRotation() {
-        FineTunePlan plan = planner.plan(SetupMode.HOTLAP_ATTACK,
+        FineTunePlan plan = planner.plan(SetupMode.FAST_ATTACK,
                 FineTunePlan.Origin.EXACT_DERIVATIVE);
         assertDelta(plan, ParameterKey.BRAKE_BIAS, false);
         assertDelta(plan, ParameterKey.REAR_WING, false);
@@ -20,12 +20,20 @@ public final class ModeFineTunePlannerTest {
 
     @Test
     public void safeModeMovesVerifiedStepsTowardStability() {
-        FineTunePlan plan = planner.plan(SetupMode.SAFE,
+        FineTunePlan plan = planner.plan(SetupMode.FAST_SAFE,
                 FineTunePlan.Origin.EXACT_DERIVATIVE);
         assertDelta(plan, ParameterKey.BRAKE_BIAS, true);
         assertDelta(plan, ParameterKey.REAR_WING, true);
         assertDelta(plan, ParameterKey.TRACTION_CONTROL, true);
         assertDelta(plan, ParameterKey.ABS, true);
+    }
+
+    @Test
+    public void allFiveModesHaveAUsableExactAdjustmentPlan() {
+        for (SetupMode mode : SetupMode.values()) {
+            FineTunePlan plan = planner.plan(mode, FineTunePlan.Origin.EXACT_DERIVATIVE);
+            assertTrue(plan.adjustments.size() >= 6);
+        }
     }
 
     private static void assertDelta(FineTunePlan plan, ParameterKey key, boolean positive) {

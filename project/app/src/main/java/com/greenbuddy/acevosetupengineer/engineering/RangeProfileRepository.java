@@ -160,14 +160,16 @@ public final class RangeProfileRepository {
         if (!source.has(key) || source.isNull(key)) return null;
         JSONObject value = source.optJSONObject(key);
         if (value == null || !value.has("min") || !value.has("max") || !value.has("step")) {
-            throw new SetupValidationException("Unvollständiger EVO-Wertebereich: " + key);
+            // Fail closed per control, not per vehicle: a malformed optional slider
+            // is unavailable while the remaining independently valid controls stay usable.
+            return null;
         }
         double minimum = value.optDouble("min", Double.NaN);
         double maximum = value.optDouble("max", Double.NaN);
         double step = value.optDouble("step", Double.NaN);
         if (!Double.isFinite(minimum) || !Double.isFinite(maximum) || !Double.isFinite(step)
                 || minimum >= maximum || step <= 0 || step > maximum - minimum) {
-            throw new SetupValidationException("Ungültiger EVO-Wertebereich: " + key);
+            return null;
         }
         return new Range(minimum, maximum, step);
     }

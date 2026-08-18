@@ -14,8 +14,9 @@ the public RaceIQ repository (`SpeedHQ/RaceIQ`) at commit
   `carsetuplimits` record in an installed Assetto Corsa EVO `content.kspkg`.
 
 The app treats a missing, malformed, step-less, inverted, or otherwise
-unverified range as unavailable. It does not substitute another vehicle's
-range.
+unverified individual control as unavailable and omits that control. Other
+independently valid controls of the same car remain usable. It never repairs a
+bad range or substitutes another vehicle's range.
 
 ## AC EVO exact-layout geometry
 

@@ -16,7 +16,9 @@ import java.util.Locale;
 /** Executes exactly two complete LIVE rounds across every configured provider. */
 public final class LiveSearchCoordinator {
     public static final int REQUIRED_ROUNDS = 2;
-    private static final int MAX_STRUCTURE_DOWNLOADS_PER_PROVIDER_ROUND = 5;
+    // Inspect enough same-car candidates to avoid selecting an unusually sparse
+    // protobuf as the reusable structure when the provider offers richer files.
+    private static final int MAX_STRUCTURE_DOWNLOADS_PER_PROVIDER_ROUND = 12;
 
     private final List<LiveProvider> providers;
     private final ExactCache cache;

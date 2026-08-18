@@ -10,6 +10,7 @@ import com.greenbuddy.acevosetupengineer.engineering.FineTunePlan;
 import com.greenbuddy.acevosetupengineer.engineering.ParameterKey;
 import com.greenbuddy.acevosetupengineer.engineering.ParameterDefinition;
 import com.greenbuddy.acevosetupengineer.engineering.SetupValidationException;
+import com.greenbuddy.acevosetupengineer.engineering.VehicleSetupPolicy;
 import com.greenbuddy.acevosetupengineer.model.SetupRequest;
 import com.greenbuddy.acevosetupengineer.model.VerifiedExact;
 
@@ -49,6 +50,7 @@ public final class ExactFineTuneService {
         EngineeringSetup base = new EngineeringSetup(EngineeringSetup.Label.EXACT_DERIVATIVE,
                 decoded, baseAudit);
         EngineeringSetup tuned = fineTuneEngine.apply(base, profile, plan);
+        tuned = new VehicleSetupPolicy().apply(request, profile, tuned);
         byte[] patched = codec.patchKnown(exact.bytes, tuned.values);
 
         CarSetupInspection roundtrip = CarSetupInspector.inspect(patched);

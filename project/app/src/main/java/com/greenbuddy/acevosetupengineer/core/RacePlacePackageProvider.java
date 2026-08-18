@@ -83,7 +83,7 @@ public final class RacePlacePackageProvider implements LiveProvider {
         connection.setReadTimeout(30_000);
         connection.setInstanceFollowRedirects(true);
         connection.setRequestProperty("Accept", "application/zip");
-        connection.setRequestProperty("User-Agent", "The-Godfather-of-EVO/1.0");
+        connection.setRequestProperty("User-Agent", "The-Godfather-of-EVO/1.1");
         int status = connection.getResponseCode();
         if (status < 200 || status >= 300) {
             connection.disconnect();
