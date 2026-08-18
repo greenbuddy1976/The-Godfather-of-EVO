@@ -57,19 +57,23 @@ minimum/maximum/step, the exact layout demands and the selected driving mode.
 The hard guard prevents starting on a range end stop. Optional natural-language
 fine-tuning is then applied in verified steps.
 
-A user-selected `.carsetup` is accepted only when its decoded signature matches
-the selected exact vehicle. It supplies protobuf field placement only. Before
-export, all adjustable fields in the authorized profile are replaced. Per-wheel
-fields are written absolutely left/right, so stored asymmetry cannot survive as
-an input. Regression coverage proves that carriers with different stored tyre
-numbers produce the same newly generated tyre bytes.
+A same-car `.carsetup` is accepted only when its decoded signature matches the
+selected exact vehicle. Resolution is automatic: a release-pinned carrier,
+then a LIVE-verified same-car file, then the integrity-checked per-car cache.
+A manually selected file remains an optional override, never a prerequisite.
+The carrier supplies protobuf field placement only. Before export, every field
+in the authorized profile is replaced. Per-wheel fields are written absolutely
+left/right, so stored asymmetry cannot survive as an input. Regression coverage
+proves that carriers with different stored tyre numbers produce the same newly
+generated tyre bytes.
 
-The current clean-room data authorizes this complete SELF CALC write path for
-29 vehicle range identities. Thirty-six further range identities expose an ARB
-slider in clicks while the binary may contain per-car N/m stiffness. Because a
-complete per-car click-to-stiffness LUT is not publicly available, those models
-are refused for SELF CALC instead of guessing. The three malformed profiles
-listed above are also refused. This limitation is explicit and fail-closed.
+The current clean-room data contains 65 structurally valid range-model
+identities after the three malformed profiles listed above are rejected.
+Physical N/m ARB ranges are writable. Click-only ARB rows are omitted until a
+per-car click-to-stiffness table is verified. Brake-pressure and engine-map
+fields are likewise omitted rather than guessed. Offline same-car structure
+coverage is release-pinned for the five RacePlace 0.8.1 cars; LIVE-verified
+same-car structures can extend that coverage and are cached per car.
 
 ## Vehicle thumbnails
 
@@ -108,9 +112,10 @@ download endpoint `https://raceplace.racing/download/12287/`.
 - Fields unavailable in the corresponding public range profile: 32 and
   deliberately skipped.
 
-Community setup numbers are not bundled and are never used as SELF CALC
-anchors. The audit establishes binary field identity, range compatibility and
-round-trip behavior only.
+One integrity-manifested Monza file per audited vehicle is bundled solely as a
+same-car binary structure carrier. Its setup numbers are never SELF CALC
+inputs; every authorized profile field is newly generated and read back. The
+remaining package files are audit evidence only.
 
 ## Fine-tuning safety
 
@@ -118,9 +123,10 @@ The codec does not expose damper fields `#2` and `#4` as fast bump/rebound:
 public slider-diff verification identifies those as underlying fixed rates.
 Adjustable slow bump/rebound are fields `#1` and `#3`.
 
-ARB writing is disabled in range profiles because the setup file may store
-stiffness while `carsetuplimits` exposes click values. Engine-map and brake
-pressure writing are also excluded until their unit/index mapping is verified.
+ARB writing is enabled only when `carsetuplimits` exposes the physical N/m
+scale stored by the packed binary field. Click-only ARB profiles are skipped.
+Engine-map and brake-pressure writing are excluded until their unit/index
+mapping is independently verified.
 
 Every changed export must be re-decoded, match the original vehicle signature,
 match requested values, remain within the pinned per-car ranges and leave

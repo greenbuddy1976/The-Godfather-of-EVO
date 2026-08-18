@@ -21,37 +21,38 @@ import static org.junit.Assert.assertTrue;
 
 public final class LiveSearchCoordinatorTest {
     @Test
-    public void earlyExactStillRunsAllThreeCompleteRounds() {
+    public void earlyExactStillRunsBothCompleteRounds() {
         FakeProvider provider = new FakeProvider(FakeProvider.Behaviour.EXACT);
         LiveSearchSummary result = new LiveSearchCoordinator(List.of(provider), new MemoryExactCache())
                 .search(request());
 
-        assertEquals(3, provider.searchCalls);
+        assertEquals(2, provider.searchCalls);
         assertEquals(LiveSearchSummary.Status.EXACT, result.status);
-        assertEquals(3, result.completedRounds);
+        assertEquals(2, result.completedRounds);
         assertNotNull(result.exact);
+        assertNotNull(result.structureCarrier);
         assertFalse(result.liveUnverified);
     }
 
     @Test
-    public void threeSuccessfulEmptyRoundsLeadToSelfCalcPath() {
+    public void twoSuccessfulEmptyRoundsLeadToSelfCalcPath() {
         FakeProvider provider = new FakeProvider(FakeProvider.Behaviour.EMPTY);
         LiveSearchSummary result = new LiveSearchCoordinator(List.of(provider), new MemoryExactCache())
                 .search(request());
 
-        assertEquals(3, provider.searchCalls);
-        assertEquals(LiveSearchSummary.Status.NO_EXACT_AFTER_3_ROUNDS, result.status);
+        assertEquals(2, provider.searchCalls);
+        assertEquals(LiveSearchSummary.Status.NO_EXACT_AFTER_2_ROUNDS, result.status);
         assertFalse(result.liveUnverified);
     }
 
     @Test
-    public void threeTechnicalFailuresNeverClaimNoExact() {
+    public void twoTechnicalFailuresNeverClaimNoExact() {
         FakeProvider provider = new FakeProvider(FakeProvider.Behaviour.FAIL);
         LiveSearchSummary result = new LiveSearchCoordinator(List.of(provider), new MemoryExactCache())
                 .search(request());
 
-        assertEquals(3, provider.searchCalls);
-        assertEquals(LiveSearchSummary.Status.LIVE_FAILED_AFTER_3_ROUNDS, result.status);
+        assertEquals(2, provider.searchCalls);
+        assertEquals(LiveSearchSummary.Status.LIVE_FAILED_AFTER_2_ROUNDS, result.status);
         assertTrue(result.liveUnverified);
         assertTrue(result.auditLog.stream().anyMatch(line -> line.contains("Existenz eines EXACT ist unbekannt")));
     }
@@ -61,8 +62,38 @@ public final class LiveSearchCoordinatorTest {
         FakeProvider provider = new FakeProvider(FakeProvider.Behaviour.WRONG_SIGNATURE);
         LiveSearchSummary result = new LiveSearchCoordinator(List.of(provider), new MemoryExactCache())
                 .search(request());
-        assertEquals(LiveSearchSummary.Status.NO_EXACT_AFTER_3_ROUNDS, result.status);
+        assertEquals(LiveSearchSummary.Status.NO_EXACT_AFTER_2_ROUNDS, result.status);
         assertTrue(result.auditLog.stream().anyMatch(line -> line.contains("Signatur passt nicht")));
+    }
+
+    @Test
+    public void nonExactSameCarCandidateBecomesStructureButNeverExact() {
+        FakeProvider provider = new FakeProvider(FakeProvider.Behaviour.SAME_CAR_OTHER_LAYOUT);
+        LiveSearchSummary result = new LiveSearchCoordinator(List.of(provider), new MemoryExactCache())
+                .search(request());
+
+        assertEquals(2, provider.searchCalls);
+        assertEquals(LiveSearchSummary.Status.NO_EXACT_AFTER_2_ROUNDS, result.status);
+        assertNotNull(result.structureCarrier);
+        assertTrue(result.auditLog.stream().anyMatch(line -> line.contains("Same-Car-Struktur")));
+    }
+
+    @Test
+    public void offlineRunUsesOnlyPreviouslyVerifiedSameCarStructureCache() {
+        MemoryStructureCarrierCache structureCache = new MemoryStructureCarrierCache();
+        FakeProvider online = new FakeProvider(FakeProvider.Behaviour.SAME_CAR_OTHER_LAYOUT);
+        LiveSearchSummary seeded = new LiveSearchCoordinator(List.of(online), new MemoryExactCache(),
+                structureCache, message -> { }).search(request());
+        assertNotNull(seeded.structureCarrier);
+
+        FakeProvider offline = new FakeProvider(FakeProvider.Behaviour.FAIL);
+        LiveSearchSummary result = new LiveSearchCoordinator(List.of(offline), new MemoryExactCache(),
+                structureCache, message -> { }).search(request());
+
+        assertEquals(2, offline.searchCalls);
+        assertEquals(LiveSearchSummary.Status.LIVE_FAILED_AFTER_2_ROUNDS, result.status);
+        assertNotNull(result.structureCarrier);
+        assertTrue(result.structureCarrier.fromCache);
     }
 
     private static SetupRequest request() {
@@ -74,7 +105,7 @@ public final class LiveSearchCoordinatorTest {
     }
 
     private static final class FakeProvider implements LiveProvider {
-        enum Behaviour { EXACT, EMPTY, FAIL, WRONG_SIGNATURE }
+        enum Behaviour { EXACT, EMPTY, FAIL, WRONG_SIGNATURE, SAME_CAR_OTHER_LAYOUT }
 
         final Behaviour behaviour;
         int searchCalls;
@@ -93,7 +124,8 @@ public final class LiveSearchCoordinatorTest {
             searchCalls++;
             if (behaviour == Behaviour.FAIL) throw new IOException("offline");
             if (behaviour == Behaviour.EMPTY) return List.of();
-            return List.of(new ExactCandidate(name(), "id", "vehicle", "layout", "0.8.1",
+            String layout = behaviour == Behaviour.SAME_CAR_OTHER_LAYOUT ? "other-layout" : "layout";
+            return List.of(new ExactCandidate(name(), "id", "vehicle", layout, "0.8.1",
                     "https://example.invalid/setup/id", "https://example.invalid/file", "test.carsetup"));
         }
 

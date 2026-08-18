@@ -16,7 +16,8 @@ EXPECTED_LAYOUTS = 24
 EXPECTED_MODES = 4
 EXPECTED_RANGE_IDENTITIES = 68
 EXPECTED_BINARY_IDENTITIES = 69
-UNWRITABLE_BINARY_KEYS = {"frontARB", "rearARB", "brakePressure", "engineMap"}
+EXPECTED_SELF_CALC_RANGE_IDENTITIES = 65
+EXPECTED_BUNDLED_CARRIERS = 5
 
 
 def load(path: Path):
@@ -34,6 +35,42 @@ def require(condition: bool, message: str):
         raise SystemExit(f"VERIFY FAILED: {message}")
 
 
+def read_varint(data: bytes, offset: int) -> tuple[int, int]:
+    value = 0
+    shift = 0
+    while offset < len(data) and shift <= 63:
+        byte = data[offset]
+        offset += 1
+        value |= (byte & 0x7F) << shift
+        if not byte & 0x80:
+            return value, offset
+        shift += 7
+    raise ValueError("invalid varint")
+
+
+def top_level_signature(data: bytes) -> str | None:
+    offset = 0
+    while offset < len(data):
+        tag, offset = read_varint(data, offset)
+        field, wire = tag >> 3, tag & 7
+        if wire == 0:
+            _, offset = read_varint(data, offset)
+        elif wire == 1:
+            offset += 8
+        elif wire == 5:
+            offset += 4
+        elif wire == 2:
+            length, offset = read_varint(data, offset)
+            payload = data[offset:offset + length]
+            require(len(payload) == length, "truncated structure carrier")
+            offset += length
+            if field == 9:
+                return payload.decode("utf-8")
+        else:
+            raise ValueError("unsupported wire type")
+    return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
@@ -47,6 +84,7 @@ def main() -> None:
     tracks = load(assets / "track-engineering-profiles-0.8.1.json")
     ranges_path = assets / "evo-carsetuplimits-0.8.1.json"
     ranges = load(ranges_path)
+    carriers = load(assets / "structure-carriers-0.8.1.json")
 
     vehicles = catalog["vehicles"]
     layouts = catalog["layouts"]
@@ -92,8 +130,8 @@ def main() -> None:
             "catalog range key missing in pinned dataset")
 
     invalid_range_profiles = []
-    mapping_blocked_profiles = []
     self_calc_ready_keys = []
+    omitted_unverified_fields = []
     for range_key, knobs in ranges.items():
         invalid = []
         for knob, value in knobs.items():
@@ -106,13 +144,45 @@ def main() -> None:
                 invalid.append(knob)
         if invalid:
             invalid_range_profiles.append({"rangeKey": range_key, "fields": sorted(invalid)})
-        elif any(knobs.get(key) is not None for key in UNWRITABLE_BINARY_KEYS):
-            mapping_blocked_profiles.append(range_key)
         else:
             self_calc_ready_keys.append(range_key)
+            omitted = []
+            for key in ("brakePressure", "engineMap"):
+                if knobs.get(key) is not None:
+                    omitted.append(key)
+            for key in ("frontARB", "rearARB"):
+                value = knobs.get(key)
+                if value is not None and value["min"] < 1000:
+                    omitted.append(key)
+            if omitted:
+                omitted_unverified_fields.append({"rangeKey": range_key, "fields": sorted(omitted)})
     require(len(invalid_range_profiles) == 3, "malformed range profile count changed")
-    require(len(mapping_blocked_profiles) == 36, "unsafe binary mapping profile count changed")
-    require(len(self_calc_ready_keys) == 29, "SELF CALC ready range profile count changed")
+    require(len(self_calc_ready_keys) == EXPECTED_SELF_CALC_RANGE_IDENTITIES,
+            "SELF CALC range profile count changed")
+
+    require(carriers["schema"] == 1, "structure carrier schema")
+    require(carriers["gameVersion"] == EXPECTED_VERSION, "structure carrier version")
+    carrier_rows = carriers["vehicles"]
+    require(len(carrier_rows) == EXPECTED_BUNDLED_CARRIERS, "bundled carrier count")
+    unique(carrier_rows, "vehicleId", "carrier vehicle id")
+    vehicle_by_id = {row["id"]: row for row in vehicles}
+    for row in carrier_rows:
+        require(row["vehicleId"] in vehicle_by_id, f"unknown carrier vehicle {row['vehicleId']}")
+        require(row["asset"].startswith("structure-carriers/") and ".." not in row["asset"],
+                f"unsafe carrier path {row['vehicleId']}")
+        carrier_path = assets / row["asset"]
+        require(carrier_path.is_file(), f"missing carrier {row['vehicleId']}")
+        carrier_bytes = carrier_path.read_bytes()
+        require(hashlib.sha256(carrier_bytes).hexdigest() == row["sha256"],
+                f"carrier hash {row['vehicleId']}")
+        signature = top_level_signature(carrier_bytes)
+        require(signature == row["signature"], f"carrier signature manifest {row['vehicleId']}")
+        require(signature.startswith(vehicle_by_id[row["vehicleId"]]["signaturePrefix"]),
+                f"carrier vehicle identity {row['vehicleId']}")
+
+    live_source = (root / "project/app/src/main/java/com/greenbuddy/acevosetupengineer/core/LiveSearchCoordinator.java")
+    require("REQUIRED_ROUNDS = 2" in live_source.read_text(encoding="utf-8"),
+            "LIVE round count is not exactly two")
 
     matrix = len(vehicles) * len(layouts) * EXPECTED_MODES
     require(matrix == 6816, "N x M x 4 matrix size")
@@ -124,7 +194,8 @@ def main() -> None:
         "binaryVehicleIdentities": signatures,
         "rangeVehicleIdentities": range_identities,
         "selfCalcReadyRangeIdentities": len(self_calc_ready_keys),
-        "selfCalcBlockedBinaryMappingIdentities": len(mapping_blocked_profiles),
+        "profilesWithExplicitlyOmittedUnverifiedFields": len(omitted_unverified_fields),
+        "bundledStructureCarriers": len(carrier_rows),
         "invalidRangeProfiles": invalid_range_profiles,
         "layouts": len(layouts),
         "trackProfiles": len(track_rows),

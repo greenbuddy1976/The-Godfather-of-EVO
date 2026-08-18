@@ -53,8 +53,10 @@ public final class RacePlacePackageProvider implements LiveProvider {
                 }
                 String vehicleSlug = vehicleSlug(entry.getName());
                 String layoutSlug = layoutSlug(entry.getName());
-                if (request.vehicle.providerSlug.equals(vehicleSlug)
-                        && request.layout.providerSlug.equals(layoutSlug)) {
+                // Return every same-car entry. The coordinator alone decides
+                // whether metadata is EXACT; a non-exact entry may only become
+                // a verified binary structure carrier.
+                if (request.vehicle.providerSlug.equals(vehicleSlug)) {
                     byte[] bytes = readLimited(input, MAX_ENTRY_BYTES);
                     String providerId = entry.getName();
                     currentRoundFiles.put(providerId, bytes);

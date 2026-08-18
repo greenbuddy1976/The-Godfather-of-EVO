@@ -22,12 +22,15 @@ import android.widget.TextView;
 import com.greenbuddy.acevosetupengineer.catalog.CatalogData;
 import com.greenbuddy.acevosetupengineer.catalog.CatalogRepository;
 import com.greenbuddy.acevosetupengineer.core.AndroidExactCache;
+import com.greenbuddy.acevosetupengineer.core.AndroidStructureCarrierCache;
+import com.greenbuddy.acevosetupengineer.core.BundledStructureCarrierRepository;
 import com.greenbuddy.acevosetupengineer.core.ExactFineTuneService;
 import com.greenbuddy.acevosetupengineer.core.LiveSearchCoordinator;
 import com.greenbuddy.acevosetupengineer.core.LiveSearchSummary;
 import com.greenbuddy.acevosetupengineer.core.RacePlacePackageProvider;
 import com.greenbuddy.acevosetupengineer.core.SetupsMarketProvider;
 import com.greenbuddy.acevosetupengineer.core.SelfCalcExportService;
+import com.greenbuddy.acevosetupengineer.core.VerifiedStructureCarrier;
 import com.greenbuddy.acevosetupengineer.engineering.EngineeringProfile;
 import com.greenbuddy.acevosetupengineer.engineering.EngineeringSetup;
 import com.greenbuddy.acevosetupengineer.engineering.FineTuneInterpretation;
@@ -83,6 +86,7 @@ public final class MainActivity extends Activity {
     private VehicleThumbnailLoader thumbnailLoader;
     private RangeProfileRepository rangeProfiles;
     private TrackProfileRepository trackProfiles;
+    private BundledStructureCarrierRepository bundledCarriers;
     private LiveSearchCoordinator liveSearch;
     private final ExecutorService setupExecutor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean setupRunning = new AtomicBoolean();
@@ -101,11 +105,13 @@ public final class MainActivity extends Activity {
             thumbnailLoader = new VehicleThumbnailLoader(this);
             rangeProfiles = new RangeProfileRepository(this);
             trackProfiles = new TrackProfileRepository(this);
+            bundledCarriers = new BundledStructureCarrierRepository(this);
             liveSearch = new LiveSearchCoordinator(
                     Arrays.asList(new RacePlacePackageProvider(), new SetupsMarketProvider()),
                     new AndroidExactCache(this),
+                    new AndroidStructureCarrierCache(this),
                     message -> runOnUiThread(() -> setStatus(
-                            "LIVE-SUCHE – drei vollständige Runden\n\n" + message, false)));
+                            "LIVE-SUCHE – zwei vollständige Runden\n\n" + message, false)));
             setContentView(buildScreen());
         } catch (Exception ex) {
             TextView failure = text("Katalog konnte nicht verifiziert geladen werden: " + ex.getMessage(), 16, TEXT);
@@ -167,10 +173,11 @@ public final class MainActivity extends Activity {
         layoutSpinner = spinner(catalog.layouts);
         root.addView(layoutSpinner, matchWrap(0, dp(18)));
 
-        Button carrierButton = button("STRUKTURTRÄGER FÜR SELF-CALC WÄHLEN", CARD);
+        Button carrierButton = button("OPTIONALE EIGENE STRUKTURDATEI WÄHLEN", CARD);
         carrierButton.setOnClickListener(ignored -> beginCarrierImport());
         root.addView(carrierButton, matchWrap(0, dp(5)));
-        carrierStatus = text(getString(R.string.carrier_optional), 12, MUTED);
+        carrierStatus = text(getString(R.string.carrier_automatic), 12, MUTED);
+        updateCarrierStatus();
         root.addView(carrierStatus, matchWrap(0, dp(18)));
 
         root.addView(sectionTitle("Setup-Stil"));
@@ -245,7 +252,7 @@ public final class MainActivity extends Activity {
             return;
         }
         if (!setupRunning.compareAndSet(false, true)) {
-            setStatus("Die drei LIVE-Runden laufen bereits. Bitte diesen Durchlauf abschließen lassen.", true);
+            setStatus("Die zwei LIVE-Runden laufen bereits. Bitte diesen Durchlauf abschließen lassen.", true);
             return;
         }
 
@@ -262,7 +269,7 @@ public final class MainActivity extends Activity {
         byte[] carrierSnapshot = structureCarrierBytes == null ? null : structureCarrierBytes.clone();
         SetupRequest request = new SetupRequest(vehicle, layout, mode, catalog.gameVersion);
         setStatus("LIVE-SUCHE STARTET\n\n" + vehicle.name + "\n" + layout.name
-                + "\n" + mode.buttonLabel + "\n\nRunde 1/3 wird vorbereitet.", false);
+                + "\n" + mode.buttonLabel + "\n\nRunde 1/2 wird vorbereitet.", false);
         setupExecutor.execute(() -> {
             try {
                 LiveSearchSummary summary = liveSearch.search(request);
@@ -314,7 +321,7 @@ public final class MainActivity extends Activity {
             String tunedHash = Hashing.sha256(result.bytes);
             StringBuilder message = new StringBuilder();
             message.append("EXACT DERIVATIVE – EXPORT FREIGEGEBEN\n\n")
-                    .append("LIVE-Runden: 3/3 vollständig\n")
+                    .append("LIVE-Runden: ").append(summary.completedRounds).append("/2 vollständig\n")
                     .append("Quelle: ").append(summary.exact.candidate.provider).append('\n')
                     .append("Fahrzeug/Version/Layout: exakt verifiziert\n")
                     .append("Binärsignatur: ").append(summary.exact.decodedVehicleSignature).append('\n')
@@ -360,9 +367,24 @@ public final class MainActivity extends Activity {
                 throw new SetupValidationException("Für das exakte Layout fehlt das Geometrieprofil. "
                         + "Kein ähnlicher Kurs wird verwendet.");
             }
+            String carrierSource = "optionale Same-Car-Datei";
             if (carrier == null) {
-                throw new SetupValidationException("Kein Strukturträger gewählt. Bitte eine im Spiel "
-                        + "gespeicherte .carsetup desselben Autos auswählen; ihre Zahlen werden nicht übernommen.");
+                VerifiedStructureCarrier bundled = bundledCarriers.load(request.vehicle);
+                if (bundled != null) {
+                    carrier = bundled.bytes;
+                    carrierSource = bundled.source;
+                }
+            }
+            if (carrier == null && summary.structureCarrier != null) {
+                carrier = summary.structureCarrier.bytes;
+                carrierSource = summary.structureCarrier.fromCache
+                        ? "integritätsgeprüfter Same-Car-Cache"
+                        : "LIVE-verifizierte Same-Car-Struktur";
+            }
+            if (carrier == null) {
+                throw new SetupValidationException("Für dieses Fahrzeug wurde weder gebündelt, LIVE noch im "
+                        + "Integritätscache eine verifizierte Same-Car-Struktur gefunden. Optional kann eine "
+                        + "eigene .carsetup desselben Autos gewählt werden; ihre Zahlen werden nicht berechnet.");
             }
             EngineeringProfile profile = rangeProfiles.loadRangeOnly(request.vehicle);
             TrackProfile track = trackProfiles.load(request.layout);
@@ -374,12 +396,14 @@ public final class MainActivity extends Activity {
             SelfCalcExportService.Result result = new SelfCalcExportService().apply(
                     request, carrier, profile, generated);
             String outputHash = Hashing.sha256(result.bytes);
+            String finalCarrierSource = carrierSource;
             StringBuilder message = new StringBuilder("ENGINEERING MODEL – EXPORT FREIGEGEBEN\n\n")
-                    .append("LIVE-Runden: 3/3 vollständig\n")
+                    .append("LIVE-Runden: ").append(summary.completedRounds).append("/2 vollständig\n")
                     .append(liveState).append('\n')
                     .append("Fahrzeugbereich: exakt/versioniert\n")
                     .append("Layoutprofil: exakt/versioniert\n")
-                    .append("Strukturträger: gleiche Fahrzeug-Signatur; Zahlen verworfen\n")
+                    .append("Strukturträger: ").append(finalCarrierSource)
+                    .append("; gleiche Fahrzeug-Signatur; Werte nicht als Modell-Eingabe verwendet\n")
                     .append("Neu berechnete Parameter: ").append(result.setup.values.size()).append('\n')
                     .append("Strukturträger SHA-256: ").append(result.carrierSha256).append('\n')
                     .append("Ausgabe SHA-256: ").append(outputHash).append('\n')
@@ -397,7 +421,8 @@ public final class MainActivity extends Activity {
         } catch (RuntimeException unsafe) {
             runOnUiThread(() -> {
                 clearPendingExport();
-                setStatus("ENGINEERING MODEL NICHT FREIGEGEBEN\n\nLIVE-Runden: 3/3 vollständig\n"
+                setStatus("ENGINEERING MODEL NICHT FREIGEGEBEN\n\nLIVE-Runden: "
+                        + summary.completedRounds + "/2 vollständig\n"
                         + liveState + "\n\nNICHT SICHER: " + safeMessage(unsafe), true);
             });
         }
@@ -491,10 +516,21 @@ public final class MainActivity extends Activity {
         structureCarrierSignature = null;
         structureCarrierSha256 = null;
         if (carrierStatus != null) {
-            carrierStatus.setText(R.string.carrier_optional);
-            carrierStatus.setTextColor(MUTED);
+            updateCarrierStatus();
         }
         clearPendingExport();
+    }
+
+    private void updateCarrierStatus() {
+        if (carrierStatus == null) return;
+        CatalogItem vehicle = vehicleSpinner == null ? null
+                : (CatalogItem) vehicleSpinner.getSelectedItem();
+        if (vehicle != null && bundledCarriers != null && bundledCarriers.has(vehicle)) {
+            carrierStatus.setText(getString(R.string.carrier_bundled, vehicle.name));
+        } else {
+            carrierStatus.setText(R.string.carrier_automatic);
+        }
+        carrierStatus.setTextColor(MUTED);
     }
 
     private void clearPendingExport() {

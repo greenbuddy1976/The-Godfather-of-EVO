@@ -41,8 +41,8 @@ public final class RangeProfileRepository {
     }
 
     /**
-     * Range-only profile. It can safely constrain/fine-tune a verified EXACT file,
-     * but cannot authorize SELF CALC because it deliberately has no invented anchor.
+     * Version-pinned range profile. SELF CALC may use it only with an independently
+     * verified same-car binary structure; no values from that carrier become model input.
      */
     public EngineeringProfile loadRangeOnly(CatalogItem vehicle) {
         if (!hasVerifiedRanges(vehicle)) {
@@ -57,10 +57,11 @@ public final class RangeProfileRepository {
         Map<ParameterKey, ParameterDefinition> parameters = new EnumMap<>(ParameterKey.class);
 
         add(parameters, raw, "steerRatio", ParameterKey.STEERING_RATIO, "ratio");
-        add(parameters, raw, "frontARB", ParameterKey.ANTI_ROLL_BAR_FRONT, "click", false);
-        add(parameters, raw, "rearARB", ParameterKey.ANTI_ROLL_BAR_REAR, "click", false);
+        addPhysicalArb(parameters, raw, "frontARB", ParameterKey.ANTI_ROLL_BAR_FRONT);
+        addPhysicalArb(parameters, raw, "rearARB", ParameterKey.ANTI_ROLL_BAR_REAR);
         add(parameters, raw, "brakeBias", ParameterKey.BRAKE_BIAS, "% front");
-        add(parameters, raw, "brakePressure", ParameterKey.BRAKE_PRESSURE, "%", false);
+        // 1.3.2 is only a provisional public decoder guess and is not released
+        // as a writable brake-pressure control.
         add(parameters, raw, "diffPower", ParameterKey.DIFFERENTIAL_POWER, "ratio");
         add(parameters, raw, "diffCoast", ParameterKey.DIFFERENTIAL_COAST, "ratio");
         add(parameters, raw, "diffPreload", ParameterKey.DIFFERENTIAL_PRELOAD, "Nm");
@@ -81,7 +82,7 @@ public final class RangeProfileRepository {
         add(parameters, raw, "tc", ParameterKey.TRACTION_CONTROL, "click");
         add(parameters, raw, "tc2", ParameterKey.TRACTION_CONTROL_2, "click");
         add(parameters, raw, "abs", ParameterKey.ABS, "click");
-        add(parameters, raw, "engineMap", ParameterKey.ENGINE_MAP, "click", false);
+        // No independently verified 0.8.1 binary field exists for engineMap.
         add(parameters, raw, "frontRideHeight", ParameterKey.RIDE_HEIGHT_FRONT, "mm");
         add(parameters, raw, "rearRideHeight", ParameterKey.RIDE_HEIGHT_REAR, "mm");
         add(parameters, raw, "frontWing", ParameterKey.FRONT_AERO, "click");
@@ -102,6 +103,22 @@ public final class RangeProfileRepository {
             ParameterKey key,
             String unit) {
         add(target, source, sourceKey, key, unit, true);
+    }
+
+    private static void addPhysicalArb(
+            Map<ParameterKey, ParameterDefinition> target,
+            JSONObject source,
+            String sourceKey,
+            ParameterKey key) {
+        Range range = readRange(source, sourceKey);
+        if (range == null) return;
+        // The verified wire field stores physical stiffness. Some source rows
+        // expose only UI click numbers (small single digits); those need a
+        // separate per-car click-to-stiffness table and are therefore omitted.
+        if (range.minimum < 1_000 || range.maximum < 1_000) return;
+        target.put(key, ParameterDefinition.verifiedRangeOnly(key, range.minimum, range.maximum,
+                range.step, "N/m", SOURCE + " field=" + sourceKey
+                        + "; packed-float path verified by SpeedHQ/RaceIQ carsetup-writer", true));
     }
 
     private static void add(

@@ -34,7 +34,7 @@ public final class SetupsMarketProvider implements LiveProvider {
         String query = API_ROOT + "/rest/v1/setups?select=id,car,track,game_version,status,file_path"
                 + "&status=eq.active"
                 + "&car=eq." + encode(request.vehicle.providerSlug)
-                + "&track=eq." + encode(request.layout.providerSlug);
+                + "&order=game_version.desc&limit=200";
         byte[] body = get(query, true);
         List<ExactCandidate> result = new ArrayList<>();
         try {

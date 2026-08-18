@@ -40,3 +40,12 @@ corresponding exact vehicle is selected.
 Assetto Corsa and Assetto Corsa EVO are trademarks of their respective owners.
 This independent project is not affiliated with or endorsed by KUNOS
 Simulazioni or 505 Games.
+
+## RacePlace 0.8.1 structure carriers
+
+Five `.carsetup` files from the freely published “RacePlace ACE Baseline
+Setups by DTVR 0.8.1” package are included as integrity-manifested binary
+structure carriers. Source: `https://raceplace.racing/download/12287/`.
+RacePlace/DTVR retain all rights to their setup files. The app does not use
+their stored setup numbers as model inputs; it verifies the same-car signature
+and rewrites every field authorized by the independent range model.
