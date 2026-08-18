@@ -28,7 +28,8 @@ final class LiveSetupSearch {
     private static final String MARKET_DOWNLOAD = "https://setupsmarket.com/setup/%s/download";
     private static final String RACEPLACE_DOWNLOADS = "https://raceplace.racing/downloads/";
     private static final Pattern DOWNLOAD_LINK = Pattern.compile(
-            "href\\s*=\\s*[\"']([^\"']*/download/\\d+/?)[\"']", Pattern.CASE_INSENSITIVE);
+            "href\\s*=\\s*[\"']([^\"']*/download/\\d+/?(?:\\?[^\"']*)?)[\"']",
+            Pattern.CASE_INSENSITIVE);
     private static final Pattern VERSION = Pattern.compile(
             "(?:version|vers\\.|v)\\s*([0-9]+(?:\\.[0-9]+){1,2})", Pattern.CASE_INSENSITIVE);
 
@@ -117,8 +118,8 @@ final class LiveSetupSearch {
         for (int i = 0; i < rows.length(); i++) {
             JSONObject row = rows.getJSONObject(i);
             String id = row.optString("id");
-            String car = row.optString("car");
-            String track = row.optString("track");
+            String car = marketCarName(row.optString("car"));
+            String track = marketTrackName(row.optString("track"));
             String version = row.optString("game_version");
             if (id.isEmpty() || car.isEmpty() || track.isEmpty() || !QueryLogic.currentVersion(version)) continue;
             if (!selectedCar.isEmpty() && !QueryLogic.exact(selectedCar, car)) continue;
@@ -169,7 +170,12 @@ final class LiveSetupSearch {
                     continue;
                 }
                 String car = parts[parts.length - 3].trim();
-                String track = parts[parts.length - 2].trim();
+                String file = parts[parts.length - 1];
+                String track = exactRacePlaceTrack(parts[parts.length - 2].trim(), file);
+                if (track.isEmpty()) {
+                    zip.closeEntry();
+                    continue;
+                }
                 if (!selectedCar.isEmpty() && !QueryLogic.exact(selectedCar, car)) {
                     zip.closeEntry();
                     continue;
@@ -178,7 +184,6 @@ final class LiveSetupSearch {
                     zip.closeEntry();
                     continue;
                 }
-                String file = parts[parts.length - 1];
                 setups.add(new SourceSetup(SourceSetup.Source.RACEPLACE,
                         archive.url + "#" + name, car, track, archive.version, file,
                         file, "RacePlace/DTVR Baseline", archive.url, name));
@@ -251,11 +256,72 @@ final class LiveSetupSearch {
         return "";
     }
 
-    private static String lastPathPart(String path) {
+    private static String lastPathPart(String path) throws Exception {
         if (path == null || path.isEmpty()) return "";
         String normalized = path.replace('\\', '/');
         String last = normalized.substring(normalized.lastIndexOf('/') + 1);
-        return URLDecoder.decode(last, StandardCharsets.UTF_8);
+        return URLDecoder.decode(last, StandardCharsets.UTF_8.name());
+    }
+
+    private static String marketCarName(String slug) {
+        return prettySlug(slug, false);
+    }
+
+    private static String marketTrackName(String slug) {
+        String key = slug == null ? "" : slug.trim().toLowerCase(Locale.ROOT);
+        return switch (key) {
+            case "brands-hatch" -> "Brands Hatch GP";
+            case "donington-park" -> "Donington Park International";
+            case "kyalami" -> "Kyalami Grand Prix";
+            case "nurburgring" -> "Nürburgring GP";
+            case "spa-francorchamps" -> "Spa-Francorchamps";
+            case "watkins-glen" -> "Watkins Glen Grand Prix";
+            default -> prettySlug(slug, true);
+        };
+    }
+
+    private static String prettySlug(String slug, boolean track) {
+        if (slug == null) return "";
+        String[] parts = slug.trim().replace('_', '-').split("-+");
+        StringBuilder out = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            String lower = part.toLowerCase(Locale.ROOT);
+            String word = switch (lower) {
+                case "bmw", "vw", "gt2", "gt3", "gt4", "rs", "lm", "gp", "nd", "mx" -> lower.toUpperCase(Locale.ROOT);
+                case "r8" -> "R8";
+                default -> Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
+            };
+            if (out.length() > 0) out.append(' ');
+            out.append(word);
+        }
+        String value = out.toString();
+        if (track && value.equals("Nurburgring")) return "Nürburgring GP";
+        return value;
+    }
+
+    private static String exactRacePlaceTrack(String folder, String fileName) {
+        String folderKey = QueryLogic.key(folder);
+        String fileKey = QueryLogic.key(fileName);
+        return switch (folderKey) {
+            case "brandshatch" -> {
+                if (fileKey.contains("bhtcindy")) yield "Brands Hatch Indy";
+                if (fileKey.contains("bhatch")) yield "Brands Hatch GP";
+                yield "";
+            }
+            case "doningtonpark" -> fileKey.contains("donint")
+                    ? "Donington Park International" : "";
+            case "kyalami" -> fileKey.contains("kya") ? "Kyalami Grand Prix" : "";
+            case "monza" -> fileKey.contains("mon") ? "Monza" : "";
+            case "nurburgring" -> {
+                if (fileKey.contains("nos24h") || fileKey.startsWith("24h")) yield "Nürburgring 24h";
+                if (fileKey.contains("nursprint")) yield "Nürburgring Sprint";
+                yield "";
+            }
+            case "watkinsgleninternational" -> fileKey.contains("watsil")
+                    ? "Watkins Glen Short Inner Loop" : "";
+            default -> "";
+        };
     }
 
     private static String safeMessage(Exception ex) {
