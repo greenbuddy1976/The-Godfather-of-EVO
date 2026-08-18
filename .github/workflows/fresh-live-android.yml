@@ -1,0 +1,93 @@
+name: Fresh LIVE Android 2.0.0
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'freshapp/**'
+      - '.github/workflows/fresh-live-android.yml'
+      - 'README-LIVE-2.0.0.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+
+      - name: Configure JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Verify clean LIVE contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find freshapp/app/src/main -type f -name '*.carsetup' | wc -l)" -eq 0
+          ! grep -Rni 'SharedPreferences' freshapp/app/src/main
+          ! grep -RniE 'text/plain|\.txt"' freshapp/app/src/main
+          grep -q 'application/octet-stream' freshapp/app/src/main/java/com/greenbuddy/godfatherlive/MainActivity.java
+          grep -q 'ACTION_CREATE_DOCUMENT' freshapp/app/src/main/java/com/greenbuddy/godfatherlive/MainActivity.java
+          grep -q 'runTwoRounds' freshapp/app/src/main/java/com/greenbuddy/godfatherlive/MainActivity.java
+          grep -q 'SETUPSMARKET' freshapp/app/src/main/java/com/greenbuddy/godfatherlive/LiveSetupSearch.java
+          grep -q 'RACEPLACE' freshapp/app/src/main/java/com/greenbuddy/godfatherlive/LiveSetupSearch.java
+          grep -q "versionName '2.0.0'" freshapp/app/build.gradle
+
+      - name: Configure Gradle 8.13 without cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-disabled: true
+
+      - name: Configure Android SDK 35
+        uses: android-actions/setup-android@v3
+
+      - name: Install pinned Android components
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +o pipefail
+          yes | sdkmanager --licenses >/dev/null
+          license_status=${PIPESTATUS[1]}
+          set -o pipefail
+          test "$license_status" -eq 0
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Unit tests and lint
+        shell: bash
+        run: gradle -p freshapp --no-daemon --no-build-cache clean testDebugUnitTest lintDebug
+
+      - name: Build installable debug-signed APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle -p freshapp --no-daemon --no-build-cache assembleDebug
+          apk="freshapp/app/build/outputs/apk/debug/app-debug.apk"
+          test -s "$apk"
+          mkdir -p release-live-2.0.0/tests release-live-2.0.0/lint
+          cp "$apk" release-live-2.0.0/The-Godfather-of-EVO-LIVE-2.0.0.apk
+          cp -R freshapp/app/build/test-results/testDebugUnitTest/. release-live-2.0.0/tests/
+          cp freshapp/app/build/reports/lint-results-debug.html release-live-2.0.0/lint/
+          sha256sum release-live-2.0.0/The-Godfather-of-EVO-LIVE-2.0.0.apk > release-live-2.0.0/SHA256SUMS.txt
+          printf '%s\n' \
+            'app_id=com.greenbuddy.godfatherlive' \
+            'version=2.0.0' \
+            'export=real_binary_carsetup_only' \
+            'live_rounds=2' \
+            'persistent_setup_cache=none' > release-live-2.0.0/VERIFICATION.txt
+
+      - name: Upload verified installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: The-Godfather-of-EVO-LIVE-2.0.0
+          path: release-live-2.0.0/
+          if-no-files-found: error
+          retention-days: 30
