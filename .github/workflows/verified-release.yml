@@ -119,11 +119,11 @@ jobs:
             | tr -d ':[:space:]' | tr '[:upper:]' '[:lower:]')
           test "$APK_CERT" = "$EXPECTED_CERT"
           mkdir -p "$REPORT_ROOT/apk" "$REPORT_ROOT/tests" "$REPORT_ROOT/lint"
-          cp "$APK" "$REPORT_ROOT/apk/The-Godfather-of-EVO-1.0.0.apk"
+          cp "$APK" "$REPORT_ROOT/apk/The-Godfather-of-EVO-1.0.1.apk"
           cp "$RUNNER_TEMP/apksigner.txt" "$REPORT_ROOT/apk/apksigner.txt"
           cp -R "$FRESH_ROOT/project/app/build/test-results/testDebugUnitTest/." "$REPORT_ROOT/tests/"
           cp -R "$FRESH_ROOT/project/app/build/reports/lint-results-release.html" "$REPORT_ROOT/lint/"
-          sha256sum "$REPORT_ROOT/apk/The-Godfather-of-EVO-1.0.0.apk" \
+          sha256sum "$REPORT_ROOT/apk/The-Godfather-of-EVO-1.0.1.apk" \
             "$SOURCE_ZIP" > "$REPORT_ROOT/SHA256SUMS.txt"
           printf '%s\n' "$APK_CERT" > "$REPORT_ROOT/apk/CERT_SHA256.txt"
 
