@@ -1,0 +1,112 @@
+name: Build The Godfather of EVO APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master-rebuild-v3
+    paths:
+      - The_Godfather_of_EVO-PROJEKT.zip
+      - .github/workflows/build-apk.yml
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_ZIP: The_Godfather_of_EVO-PROJEKT.zip
+  SOURCE_ZIP_SHA256: 5579adbdfa8663d9dda8f9400840a549ea1d10314aa1dcd90abe52de0f3db2d2
+  EXPECTED_CERT_SHA256: 001d5770383bb24b0b66e49450852f1b4ff00bc62f3d3d92a7de5c9b3b0ca2b5
+
+jobs:
+  verify-compile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout clean upload branch
+        uses: actions/checkout@v4
+
+      - name: Verify source ZIP identity and integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$SOURCE_ZIP"
+          echo "$SOURCE_ZIP_SHA256  $SOURCE_ZIP" | sha256sum --check --strict
+          unzip -t "$SOURCE_ZIP"
+
+      - name: Extract into fresh project directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir project
+          unzip -q "$SOURCE_ZIP" -d project
+          test -f project/settings.gradle.kts
+          test -f project/app/build.gradle.kts
+          test -x project/gradlew
+          test -f project/scripts/verify_release.py
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle 8.13 without cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+          cache-disabled: true
+
+      - name: Set up Android SDK 35
+        uses: android-actions/setup-android@v3
+      - name: Install exact Android platform and build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Run clean-room verifier
+        working-directory: project
+        run: python3 scripts/verify_release.py
+
+      - name: Unit tests and 8,500-case matrix
+        working-directory: project
+        run: ./gradlew --no-daemon --no-build-cache testDebugUnitTest
+
+      - name: Android lint
+        working-directory: project
+        run: ./gradlew --no-daemon --no-build-cache lintDebug
+
+      - name: Compile debug and unsigned release APKs
+        working-directory: project
+        run: ./gradlew --no-daemon --no-build-cache assembleDebug assembleRelease
+
+      - name: Verify compiled artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s project/app/build/outputs/apk/debug/app-debug.apk
+          test -s project/app/build/outputs/apk/release/app-release-unsigned.apk
+          sha256sum project/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum project/app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Upload compiled APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Godfather-EVO-compiled-apks
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            project/app/build/outputs/apk/debug/app-debug.apk
+            project/app/build/outputs/apk/release/app-release-unsigned.apk
+
+      - name: Upload verification reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: Godfather-EVO-verification-reports
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            project/build/verification-report.json
+            project/app/build/reports/tests/
+            project/app/build/reports/lint-results-debug.html
