@@ -47,7 +47,7 @@ final class SetupEngine {
                 out.append("\nFAST ATTACK\n• Heckflügel: Basiswert; nur bei sicherem Heck -1 Klick testen.\n")
                         .append("• Hinterer Stabilisator: Basisänderung zurück auf Standard.\n")
                         .append("• Kraftstoff: nur benötigte Runden + Reserve.\n");
-                out.append("• Traktionskontrolle: ").append(mustang ? "1 (Mustang-Pflicht auf jeder Strecke)." : "1, sofern vorhanden.").append('\n');
+                out.append("• Traktionskontrolle: ").append(mustang ? "TC 1 (Mustang-Pflicht auf jeder Strecke)." : "TC 1, sofern vorhanden.").append('\n');
             }
             case FAST_STABLE -> out.append("\nFAST STABLE\n• Heckflügel: zusätzlich +1 Klick.\n• Hinterer Stabilisator: zusätzlich -1 Klick.\n• TC: 2, sofern vorhanden.\n");
             case FAST_SAFE -> out.append("\nFAST SAFE\n• Heckflügel: zusätzlich +2 Klicks.\n• Bremsbalance: zusätzlich +1 Klick nach vorn.\n• TC: 3, sofern vorhanden.\n");
