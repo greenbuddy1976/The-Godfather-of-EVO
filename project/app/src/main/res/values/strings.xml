@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">The Godfather of EVO</string>
+    <string name="app_subtitle">Assetto Corsa EVO Setup Engineer</string>
+    <string name="copyright">© Greenbuddy1976</string>
+    <string name="no_vehicle_selected">Kein Fahrzeug ausgewählt</string>
+    <string name="carrier_automatic">Automatisch: Nach 2 erfolglosen LIVE-Runden verwendet die App eine verifizierte Same-Car-Struktur aus Paket, LIVE-Fund oder Integritätscache. Eine eigene Datei ist nur optional.</string>
+    <string name="carrier_bundled">Automatisch verfügbar für %1$s: verifizierte 0.8.1-Same-Car-Struktur ist in der App enthalten. Eine eigene Datei ist nicht nötig.</string>
+    <string name="carrier_verified">Verifiziert und für dieses Auto gespeichert: %1$s\nSignatur: %2$s\nSHA-256: %3$s\nNur Struktur – gespeicherte verstellbare Zahlen werden verworfen.</string>
+</resources>
