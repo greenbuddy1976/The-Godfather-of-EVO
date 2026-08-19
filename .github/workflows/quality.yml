@@ -48,18 +48,44 @@ jobs:
           set -euo pipefail
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
 
-      - name: Compile, run 12,425 safety matrix, lint and assemble debug
+      - name: Compile, run 12,425 safety matrix and assemble debug
         shell: bash
         run: |
           set -euo pipefail
           gradle --no-daemon --no-build-cache --no-configuration-cache \
-            clean testDebugUnitTest lintDebug assembleDebug
+            clean testDebugUnitTest assembleDebug
           test -s app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Android lint
+        id: android_lint
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon --no-build-cache --no-configuration-cache lintDebug
+
+      - name: Print and enforce warning-free lint report
+        shell: bash
+        env:
+          LINT_OUTCOME: ${{ steps.android_lint.outcome }}
+        run: |
+          set -euo pipefail
+          report=app/build/reports/lint-results.txt
+          test -f "$report"
+          cat "$report"
+          test "$LINT_OUTCOME" = success
+          ! grep -Eq '(^|[[:space:]])Warning:' "$report"
 
       - name: Confirm no setup payload or text-export MIME
         shell: bash
         run: |
           set -euo pipefail
-          ! unzip -l app/build/outputs/apk/debug/app-debug.apk | rg -i '\.carsetup$|backup|emergency|fallback'
-          ! rg -n 'text/plain|\.txt' app/src/main
-
+          if unzip -l app/build/outputs/apk/debug/app-debug.apk \
+              | grep -Eiq '\.carsetup$|backup|emergency|fallback'; then
+            echo 'Forbidden setup/fallback payload found in debug package'
+            exit 1
+          fi
+          if grep -RInE 'text/plain|\.txt' app/src/main; then
+            echo 'Forbidden text export found in production source'
+            exit 1
+          fi

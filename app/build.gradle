@@ -77,8 +77,10 @@ android {
     lint {
         abortOnError true
         checkReleaseBuilds true
-        warningsAsErrors false
+        warningsAsErrors true
         baseline file('lint-baseline.xml')
+        textReport true
+        textOutput file("$buildDir/reports/lint-results.txt")
         disable 'GradleDependency'
     }
 }
