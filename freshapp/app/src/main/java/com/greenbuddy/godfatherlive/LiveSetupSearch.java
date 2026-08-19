@@ -104,8 +104,9 @@ final class LiveSetupSearch {
         } catch (Exception ex) {
             round.notices.add("RacePlace: " + safeMessage(ex));
         }
+        List<SourceSetup> unique = deduplicate(round.setups);
         round.setups.clear();
-        round.setups.addAll(deduplicate(round.rawSetups));
+        round.setups.addAll(unique);
         return round;
     }
 
@@ -356,8 +357,7 @@ final class LiveSetupSearch {
     }
 
     private static final class Round {
-        final List<SourceSetup> rawSetups = new ArrayList<>();
-        final List<SourceSetup> setups = rawSetups;
+        final List<SourceSetup> setups = new ArrayList<>();
         final List<String> notices = new ArrayList<>();
     }
 
