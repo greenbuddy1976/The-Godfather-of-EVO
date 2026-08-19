@@ -29,26 +29,14 @@ jobs:
           clean: true
           fetch-depth: 1
 
+      - name: Clean-room structure and forbidden files
+        run: bash ci/clean_room_check.sh .
+
       - name: JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
-      - name: Gradle 8.13 without cache
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.13'
-          cache-disabled: true
-
-      - name: Android SDK 35
-        uses: android-actions/setup-android@v3
-
-      - name: Install exact Android packages
-        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64'
-
-      - name: Clean-room structure and forbidden files
-        run: bash ci/clean_room_check.sh .
 
       - name: Inject protected release inputs
         shell: bash
@@ -59,9 +47,22 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          test -n "$RELEASE_KEYSTORE_B64"
-          test -n "$VERIFIED_WRITERS_AAR_URL"
-          [[ "$VERIFIED_WRITERS_AAR_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]
+          require_secret() {
+            if [[ -z "$2" ]]; then
+              echo "::error::$1 is missing"
+              exit 1
+            fi
+          }
+          require_secret ACEVO_KEYSTORE_BASE64 "$RELEASE_KEYSTORE_B64"
+          require_secret ACEVO_KEYSTORE_PASSWORD "$RELEASE_STORE_PASSWORD"
+          require_secret ACEVO_KEY_PASSWORD "$RELEASE_KEY_PASSWORD"
+          require_secret ACEVO_WRITER_PROVIDER_CLASS "$VERIFIED_WRITER_PROVIDER_CLASS"
+          require_secret ACEVO_WRITER_AAR_URL "$VERIFIED_WRITERS_AAR_URL"
+          require_secret ACEVO_WRITER_AAR_SHA256 "$VERIFIED_WRITERS_AAR_SHA256"
+          if [[ ! "$VERIFIED_WRITERS_AAR_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
+            echo '::error::ACEVO_WRITER_AAR_SHA256 must contain exactly 64 hexadecimal characters'
+            exit 1
+          fi
           mkdir -p release-secrets app/libs verification-reports
           printf '%s' "$RELEASE_KEYSTORE_B64" | base64 --decode > "$RELEASE_KEYSTORE_PATH"
           curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
@@ -75,6 +76,18 @@ jobs:
 
       - name: Verify confirmed certificate
         run: bash ci/verify_certificate.sh
+
+      - name: Gradle 8.13 without cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-disabled: true
+
+      - name: Android SDK 35
+        uses: android-actions/setup-android@v3
+
+      - name: Install exact Android packages
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64'
 
       - name: Inventory, unit, 12,425 contract and fine-tuning tests
         run: gradle --no-daemon --no-build-cache --no-configuration-cache clean testDebugUnitTest
