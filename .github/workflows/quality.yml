@@ -1,9 +1,6 @@
 name: Clean-Room Development Quality
 
 on:
-  push:
-    branches:
-      - 'agent/cleanroom-v1.1.1'
   pull_request:
   workflow_dispatch:
 

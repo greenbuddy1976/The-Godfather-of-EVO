@@ -1,6 +1,6 @@
 package com.greenbuddy.acevosetupengineer;
 
-import android.test.InstrumentationTestCase;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.greenbuddy.acevosetupengineer.data.OfficialInventory;
 import com.greenbuddy.acevosetupengineer.engine.ProviderLoader;
 import com.greenbuddy.acevosetupengineer.engine.VerifiedWriterProvider;
@@ -14,8 +14,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 /** Runs only in protected release CI after the real writer AAR has been injected. */
-public final class VerifiedReleaseMatrixTest extends InstrumentationTestCase {
+@RunWith(AndroidJUnit4.class)
+public final class VerifiedReleaseMatrixTest {
+    @Test
     public void testAll12425ReleaseCombinationsProduceVerifiedBinary() throws Exception {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull("Protected verified provider is mandatory", provider);
@@ -47,6 +57,7 @@ public final class VerifiedReleaseMatrixTest extends InstrumentationTestCase {
         assertEquals(12425, count);
     }
 
+    @Test
     public void testEveryFineTuningProblemAndStrengthActuallyChangesValues() throws Exception {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull(provider);
@@ -78,6 +89,7 @@ public final class VerifiedReleaseMatrixTest extends InstrumentationTestCase {
         assertEquals(24, count);
     }
 
+    @Test
     public void testMustangFastAttackTcOneOnAllLayouts() throws Exception {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull(provider);
@@ -99,6 +111,7 @@ public final class VerifiedReleaseMatrixTest extends InstrumentationTestCase {
         }
     }
 
+    @Test
     public void testExplicitRequiredBmwAndMustangIdentities() throws Exception {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull(provider);
@@ -119,6 +132,7 @@ public final class VerifiedReleaseMatrixTest extends InstrumentationTestCase {
         }
     }
 
+    @Test
     public void testRequiredModularLiveSourcesArePresent() {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull(provider);
@@ -132,6 +146,7 @@ public final class VerifiedReleaseMatrixTest extends InstrumentationTestCase {
         assertTrue("RacePlace source adapter missing", names.contains("RacePlace"));
     }
 
+    @Test
     public void testAdjustableMustangRearWingParticipatesInHighSpeedFineTuning() throws Exception {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull(provider);

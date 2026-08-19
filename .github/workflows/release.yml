@@ -47,10 +47,11 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
+          missing=0
           require_secret() {
             if [[ -z "$2" ]]; then
               echo "::error::$1 is missing"
-              exit 1
+              missing=1
             fi
           }
           require_secret ACEVO_KEYSTORE_BASE64 "$RELEASE_KEYSTORE_B64"
@@ -59,6 +60,9 @@ jobs:
           require_secret ACEVO_WRITER_PROVIDER_CLASS "$VERIFIED_WRITER_PROVIDER_CLASS"
           require_secret ACEVO_WRITER_AAR_URL "$VERIFIED_WRITERS_AAR_URL"
           require_secret ACEVO_WRITER_AAR_SHA256 "$VERIFIED_WRITERS_AAR_SHA256"
+          if (( missing != 0 )); then
+            exit 1
+          fi
           if [[ ! "$VERIFIED_WRITERS_AAR_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
             echo '::error::ACEVO_WRITER_AAR_SHA256 must contain exactly 64 hexadecimal characters'
             exit 1
