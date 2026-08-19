@@ -49,6 +49,7 @@ android {
             applicationIdSuffix '.debug'
             versionNameSuffix '-debug'
             debuggable true
+            buildConfigField 'boolean', 'MUSTANG_BETA', 'false'
         }
         release {
             minifyEnabled false
@@ -57,6 +58,15 @@ android {
                 signingConfig signingConfigs.release
             }
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField 'boolean', 'MUSTANG_BETA', 'false'
+        }
+        beta {
+            minifyEnabled false
+            shrinkResources false
+            debuggable false
+            matchingFallbacks = ['release']
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField 'boolean', 'MUSTANG_BETA', 'true'
         }
     }
 
@@ -84,6 +94,15 @@ android {
         textOutput file("$buildDir/reports/lint-results.txt")
         // The release contract deliberately pins Gradle 8.13 and dependency versions.
         disable 'GradleDependency', 'AndroidGradlePluginVersion'
+    }
+}
+
+androidComponents {
+    onVariants(selector().withBuildType('beta')) { variant ->
+        variant.outputs.each { output ->
+            output.versionCode.set(11101)
+            output.versionName.set('1.1.1-beta.1')
+        }
     }
 }
 

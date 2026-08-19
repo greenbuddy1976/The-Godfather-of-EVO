@@ -45,13 +45,15 @@ jobs:
           set -euo pipefail
           sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools'
 
-      - name: Compile, run 12,425 safety matrix and assemble debug
+      - name: Run Mustang BETA unit tests and assemble unsigned BETA
         shell: bash
         run: |
           set -euo pipefail
           gradle --no-daemon --no-build-cache --no-configuration-cache \
-            clean testDebugUnitTest assembleDebug
-          test -s app/build/outputs/apk/debug/app-debug.apk
+            clean testBetaUnitTest assembleBeta
+          mapfile -t beta_apks < <(find app/build/outputs/apk/beta -maxdepth 1 \
+            -type f -name '*.apk' -size +0c)
+          test "${#beta_apks[@]}" -eq 1
 
       - name: Compile protected release instrumentation contracts
         shell: bash
@@ -60,13 +62,13 @@ jobs:
           gradle --no-daemon --no-build-cache --no-configuration-cache \
             compileReleaseAndroidTestJavaWithJavac
 
-      - name: Android lint
+      - name: Android BETA lint
         id: android_lint
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          gradle --no-daemon --no-build-cache --no-configuration-cache lintDebug
+          gradle --no-daemon --no-build-cache --no-configuration-cache lintBeta
 
       - name: Print and enforce warning-free lint report
         shell: bash
@@ -84,12 +86,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if unzip -l app/build/outputs/apk/debug/app-debug.apk \
+          mapfile -t beta_apks < <(find app/build/outputs/apk/beta -maxdepth 1 \
+            -type f -name '*.apk' -size +0c)
+          test "${#beta_apks[@]}" -eq 1
+          if unzip -l "${beta_apks[0]}" \
               | grep -Eiq '\.carsetup$|backup|emergency|fallback'; then
-            echo 'Forbidden setup/fallback payload found in debug package'
+            echo 'Forbidden setup/fallback payload found in BETA package'
             exit 1
           fi
           if grep -RInE 'text/plain|\.txt' app/src/main; then
             echo 'Forbidden text export found in production source'
             exit 1
           fi
+
+      - name: Name unsigned Mustang BETA artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t beta_apks < <(find app/build/outputs/apk/beta -maxdepth 1 \
+            -type f -name '*.apk' -size +0c)
+          test "${#beta_apks[@]}" -eq 1
+          cp "${beta_apks[0]}" \
+            The-Godfather-of-EVO-1.1.1-Mustang-BETA-unsigned.apk
+
+      - name: Upload unsigned Mustang BETA APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: The-Godfather-of-EVO-1.1.1-Mustang-BETA-unsigned
+          path: The-Godfather-of-EVO-1.1.1-Mustang-BETA-unsigned.apk
+          if-no-files-found: error
+          retention-days: 14

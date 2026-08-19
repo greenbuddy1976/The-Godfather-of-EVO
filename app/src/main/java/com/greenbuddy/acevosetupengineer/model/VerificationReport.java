@@ -46,6 +46,12 @@ public final class VerificationReport {
                 && sha256.matches("[0-9a-f]{64}");
     }
 
+    public boolean isBetaStructurallyChecked() {
+        return vehicleIdentity && binaryStructure && vehicleSignature && fieldsRoundTrip
+                && ranges && steps && tractionControlRule && unknownFieldsPreserved
+                && !gameLoadAcceptanceEvidence && sha256.matches("[0-9a-f]{64}");
+    }
+
     public boolean isVehicleIdentityValid() { return vehicleIdentity; }
     public boolean isLayoutIdentityValid() { return layoutIdentity; }
     public boolean isGameVersionValid() { return gameVersion; }

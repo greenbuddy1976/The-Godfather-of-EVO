@@ -8,6 +8,7 @@ public final class GenerationOutcome {
         NO_EXACT_LIVE_HIT,
         LIVE_SOURCE_TECHNICAL_ERROR,
         ENGINEERING_MODEL_RECALCULATED,
+        BETA_SAME_CAR_CREATED,
         BLOCKED_NOT_VERIFIED
     }
 
@@ -38,4 +39,5 @@ public final class GenerationOutcome {
     public String getMessage() { return message; }
     public GeneratedSetup getSetup() { return setup; }
     public boolean isExportable() { return setup != null && setup.isExportable(); }
+    public boolean hasSavableBinary() { return setup != null && setup.hasSavableBinary(); }
 }

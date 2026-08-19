@@ -39,4 +39,8 @@ public final class GeneratedSetup {
     public VerificationReport getVerification() { return verification; }
     public ResultLabel getOrigin() { return origin; }
     public boolean isExportable() { return verification.isFullyVerified(); }
+    public boolean isBetaExportable() {
+        return origin == ResultLabel.BETA_SAME_CAR && verification.isBetaStructurallyChecked();
+    }
+    public boolean hasSavableBinary() { return isExportable() || isBetaExportable(); }
 }

@@ -90,6 +90,24 @@
                 android:contentDescription="@string/layout"
                 android:popupBackground="@color/card"
                 android:spinnerMode="dropdown" />
+
+            <Button
+                android:id="@+id/importMustangButton"
+                style="@style/YellowButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/beta_import"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/importMustangStatus"
+                style="@style/SecondaryText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/beta_import_missing"
+                android:visibility="gone" />
         </LinearLayout>
 
         <LinearLayout
