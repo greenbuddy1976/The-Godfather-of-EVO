@@ -20,7 +20,6 @@
     <string name="beta_online_unavailable">Online-Suche in dieser Mustang-Beta noch nicht aktiviert</string>
     <string name="beta_import">EIGENE MUSTANG-.CARSETUP FÜR DIESES LAYOUT IMPORTIEREN</string>
     <string name="beta_import_missing">Für dieses exakte Layout ist noch keine eigene Mustang-Basis hinterlegt.</string>
-    <string name="beta_import_association">Die Binärdatei besitzt keinen geprüften Track-Marker. Der Import wird deshalb nur durch deine Auswahl diesem exakten Layout zugeordnet.</string>
     <string name="beta_import_ok">Mustang-Basis privat und nur für dieses exakte Layout gespeichert.</string>
     <string name="beta_import_missing_full">Für dieses exakte Layout ist noch keine eigene Mustang-Basis hinterlegt.\nDie Binärdatei besitzt keinen geprüften Track-Marker; deine Auswahl ist die exakte Layout-Zuordnung.</string>
     <string name="beta_import_ready_full">Mustang-Basis privat und nur für dieses exakte Layout gespeichert.\nDie Binärdatei besitzt keinen geprüften Track-Marker; deine Auswahl ist die exakte Layout-Zuordnung.</string>
