@@ -9,6 +9,7 @@ import org.json.JSONObject;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -87,7 +88,7 @@ public final class LiveIndexController {
                     .put("setupId", candidate.getSetupId())
                     .put("source", candidate.getSource())
                     .put("downloadAddress", candidate.getDownloadAddress())
-                    .put("sha256", candidate.getDeclaredSha256().toLowerCase())
+                    .put("sha256", candidate.getDeclaredSha256().toLowerCase(Locale.ROOT))
                     .put("verificationStatus", "METADATA_CONFIRMED")
                     .put("lastCheckedAt", candidate.getCheckedAtEpochMillis());
         } catch (JSONException impossible) {
