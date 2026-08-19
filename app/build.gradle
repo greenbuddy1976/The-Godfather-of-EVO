@@ -78,10 +78,10 @@ android {
         abortOnError true
         checkReleaseBuilds true
         warningsAsErrors true
-        baseline file('lint-baseline.xml')
         textReport true
         textOutput file("$buildDir/reports/lint-results.txt")
-        disable 'GradleDependency'
+        // The release contract deliberately pins Gradle 8.13 and dependency versions.
+        disable 'GradleDependency', 'AndroidGradlePluginVersion'
     }
 }
 
