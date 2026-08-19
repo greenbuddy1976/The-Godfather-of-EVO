@@ -49,10 +49,10 @@ final class LiveSetupSearch {
         }
     }
 
-    static Result runTwoRounds(String selectedCar, String selectedTrack, Progress progress) throws Exception {
+    static Result runTwoRounds(String selectedCar, String selectedTrack, Progress progress) {
         progress.update("LIVE-Runde 1/2: SetupsMarket + RacePlace …");
         Round first = fetchRound(selectedCar, selectedTrack, System.nanoTime());
-        progress.update("LIVE-Runde 2/2: Quellen vollständig neu prüfen …");
+        progress.update("LIVE-Runde 2/2: Quellen komplett neu pruefen …");
         Round second = fetchRound(selectedCar, selectedTrack, System.nanoTime());
 
         Map<String, SourceSetup> secondByKey = new LinkedHashMap<>();
@@ -61,17 +61,14 @@ final class LiveSetupSearch {
         for (SourceSetup setup : first.setups) {
             SourceSetup repeated = secondByKey.get(setup.stableKey());
             if (repeated != null && QueryLogic.exact(setup.car, repeated.car)
-                    && QueryLogic.exact(setup.track, repeated.track)) verified.add(repeated);
+                    && QueryLogic.exact(setup.track, repeated.track)) {
+                verified.add(repeated);
+            }
         }
 
         List<String> notices = new ArrayList<>();
         notices.addAll(first.notices);
         notices.addAll(second.notices);
-        if (verified.isEmpty() && first.setups.isEmpty() && second.setups.isEmpty()) {
-            throw new IllegalStateException(notices.isEmpty()
-                    ? "Keine aktuelle Quelle lieferte verwertbare .carsetup-Treffer."
-                    : String.join(" · ", notices));
-        }
         return new Result(deduplicate(verified), notices, first.setups.size(), second.setups.size());
     }
 
@@ -107,6 +104,9 @@ final class LiveSetupSearch {
         } catch (Exception ex) {
             round.notices.add("RacePlace: " + safeMessage(ex));
         }
+        List<SourceSetup> unique = deduplicate(round.setups);
+        round.setups.clear();
+        round.setups.addAll(unique);
         return round;
     }
 
@@ -140,14 +140,14 @@ final class LiveSetupSearch {
         int start = lower.indexOf("assetto corsa evo free baseline");
         if (start < 0) start = lower.indexOf("assetto corsa evo");
         if (start < 0) throw new IllegalStateException("ACE-EVO-Baseline-Bereich nicht gefunden");
-        String relevant = page.substring(start, Math.min(page.length(), start + 30_000));
+        String relevant = page.substring(start, Math.min(page.length(), start + 40_000));
         Matcher linkMatcher = DOWNLOAD_LINK.matcher(relevant);
         if (!linkMatcher.find()) throw new IllegalStateException("aktueller ZIP-Link nicht gefunden");
         URL resolved = new URL(new URL(RACEPLACE_DOWNLOADS), linkMatcher.group(1));
-        Matcher versionMatcher = VERSION.matcher(relevant.substring(0, Math.min(relevant.length(), 5_000)));
+        Matcher versionMatcher = VERSION.matcher(relevant.substring(0, Math.min(relevant.length(), 8_000)));
         String version = versionMatcher.find() ? versionMatcher.group(1) : "";
         if (!QueryLogic.currentVersion(version)) {
-            throw new IllegalStateException("Quellversion ist nicht als 0.8.x bestätigt");
+            throw new IllegalStateException("Quellversion ist nicht als 0.8.x bestaetigt");
         }
         byte[] archive = getBytes(resolved.toString(), null, 20_000_000, "application/zip");
         return new RacePlaceArchive(resolved.toString(), version, archive);
@@ -170,9 +170,9 @@ final class LiveSetupSearch {
                     continue;
                 }
                 String car = parts[parts.length - 3].trim();
-                String file = parts[parts.length - 1];
-                String track = exactRacePlaceTrack(parts[parts.length - 2].trim(), file);
-                if (track.isEmpty()) {
+                String file = parts[parts.length - 1].trim();
+                String track = normalizeRacePlaceTrack(parts[parts.length - 2].trim(), file);
+                if (car.isEmpty() || track.isEmpty()) {
                     zip.closeEntry();
                     continue;
                 }
@@ -193,6 +193,56 @@ final class LiveSetupSearch {
         return deduplicate(setups);
     }
 
+    private static String normalizeRacePlaceTrack(String folder, String fileName) {
+        String folderKey = QueryLogic.key(folder);
+        String fileKey = QueryLogic.key(fileName);
+        return switch (folderKey) {
+            case "bathurst", "mountpanorama" -> "Bathurst";
+            case "brandshatch" -> fileKey.contains("indy") || fileKey.contains("bhtcindy")
+                    ? "Brands Hatch Indy" : "Brands Hatch GP";
+            case "cota", "circuitoftheamericas" -> "Circuit of the Americas";
+            case "doningtonpark", "donington" -> "Donington Park International";
+            case "fuji", "fujispeedway" -> "Fuji Speedway";
+            case "imola" -> "Imola";
+            case "kyalami", "kyalamigrandprix" -> "Kyalami Grand Prix";
+            case "lagunaseca" -> "Laguna Seca";
+            case "monza" -> "Monza";
+            case "nurburgring", "nurburgringgp" -> {
+                if (fileKey.contains("24h") || fileKey.contains("nos24h")) yield "Nürburgring 24h";
+                if (fileKey.contains("sprint")) yield "Nürburgring Sprint";
+                yield "Nürburgring GP";
+            }
+            case "nordschleife" -> fileKey.contains("tour")
+                    ? "Nordschleife Touristenfahrten" : "Nordschleife";
+            case "nordschleifetouristenfahrten", "touristenfahrten" -> "Nordschleife Touristenfahrten";
+            case "oultonpark" -> fileKey.contains("foster") ? "Oulton Park Fosters" : "Oulton Park GP";
+            case "oultonparkfosters" -> "Oulton Park Fosters";
+            case "oultonparkgp" -> "Oulton Park GP";
+            case "paulricard" -> "Paul Ricard";
+            case "redbullring" -> "Red Bull Ring";
+            case "roadatlanta" -> "Road Atlanta";
+            case "sebring" -> "Sebring";
+            case "spa", "spafrancorchamps" -> "SPA Francorchamps";
+            case "suzuka", "suzukagrandprix" -> "Suzuka";
+            case "watkinsglen", "watkinsgleninternational", "watkinsglenshortinnerloop" -> "Watkins Glen Short Inner Loop";
+            default -> humanize(folder);
+        };
+    }
+
+    private static String humanize(String value) {
+        if (value == null) return "";
+        String cleaned = value.replace('_', ' ').replace('-', ' ').replaceAll("\\s+", " ").trim();
+        if (cleaned.isEmpty()) return "";
+        String[] words = cleaned.split(" ");
+        StringBuilder out = new StringBuilder();
+        for (String word : words) {
+            if (word.isEmpty()) continue;
+            if (out.length() > 0) out.append(' ');
+            out.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return out.toString();
+    }
+
     private static byte[] extractExactEntry(byte[] archive, String target) throws Exception {
         try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(archive), StandardCharsets.UTF_8)) {
             ZipEntry entry;
@@ -203,7 +253,7 @@ final class LiveSetupSearch {
                 zip.closeEntry();
             }
         }
-        throw new IllegalStateException("Bestätigter ZIP-Eintrag ist nicht mehr vorhanden");
+        throw new IllegalStateException("Bestaetigter ZIP-Eintrag ist nicht mehr vorhanden");
     }
 
     private static byte[] getBytes(String address, String apiKey, int maxBytes, String accept) throws Exception {
@@ -215,7 +265,7 @@ final class LiveSetupSearch {
         connection.setRequestProperty("Accept", accept);
         connection.setRequestProperty("Cache-Control", "no-cache, no-store, max-age=0");
         connection.setRequestProperty("Pragma", "no-cache");
-        connection.setRequestProperty("User-Agent", "The-Godfather-of-EVO-LIVE/2.0.0");
+        connection.setRequestProperty("User-Agent", "The-Godfather-of-EVO/2.1.0");
         if (apiKey != null) connection.setRequestProperty("apikey", apiKey);
         int status = connection.getResponseCode();
         if (status < 200 || status >= 300) {
@@ -236,7 +286,7 @@ final class LiveSetupSearch {
         int read;
         while ((read = input.read(buffer)) >= 0) {
             total += read;
-            if (total > maxBytes) throw new IllegalStateException("Download überschreitet Sicherheitslimit");
+            if (total > maxBytes) throw new IllegalStateException("Download ueberschreitet Sicherheitslimit");
             output.write(buffer, 0, read);
         }
         return output.toByteArray();
@@ -274,8 +324,9 @@ final class LiveSetupSearch {
             case "donington-park" -> "Donington Park International";
             case "kyalami" -> "Kyalami Grand Prix";
             case "nurburgring" -> "Nürburgring GP";
-            case "spa-francorchamps" -> "Spa-Francorchamps";
-            case "watkins-glen" -> "Watkins Glen Grand Prix";
+            case "spa-francorchamps" -> "SPA Francorchamps";
+            case "watkins-glen" -> "Watkins Glen Short Inner Loop";
+            case "suzuka" -> "Suzuka";
             default -> prettySlug(slug, true);
         };
     }
@@ -298,30 +349,6 @@ final class LiveSetupSearch {
         String value = out.toString();
         if (track && value.equals("Nurburgring")) return "Nürburgring GP";
         return value;
-    }
-
-    private static String exactRacePlaceTrack(String folder, String fileName) {
-        String folderKey = QueryLogic.key(folder);
-        String fileKey = QueryLogic.key(fileName);
-        return switch (folderKey) {
-            case "brandshatch" -> {
-                if (fileKey.contains("bhtcindy")) yield "Brands Hatch Indy";
-                if (fileKey.contains("bhatch")) yield "Brands Hatch GP";
-                yield "";
-            }
-            case "doningtonpark" -> fileKey.contains("donint")
-                    ? "Donington Park International" : "";
-            case "kyalami" -> fileKey.contains("kya") ? "Kyalami Grand Prix" : "";
-            case "monza" -> fileKey.contains("mon") ? "Monza" : "";
-            case "nurburgring" -> {
-                if (fileKey.contains("nos24h") || fileKey.startsWith("24h")) yield "Nürburgring 24h";
-                if (fileKey.contains("nursprint")) yield "Nürburgring Sprint";
-                yield "";
-            }
-            case "watkinsgleninternational" -> fileKey.contains("watsil")
-                    ? "Watkins Glen Short Inner Loop" : "";
-            default -> "";
-        };
     }
 
     private static String safeMessage(Exception ex) {

@@ -2,48 +2,37 @@ package com.greenbuddy.godfatherlive;
 
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
-import java.util.Comparator;
 import java.util.Locale;
 
 final class QueryLogic {
     static final String CURRENT_VERSION_PREFIX = "0.8";
 
-    enum Style {
-        SCHUMACHER("Michael Schumacher – Hotlap/Qualifying bevorzugen",
-                new String[]{"qualifying", "hotlap", "quali", "attack", "fast"}),
-        ROEHRL("Walter Röhrl – direkt und kontrolliert bevorzugen",
-                new String[]{"race", "control", "balanced", "direct"}),
-        DUESEL("Dieter Düsel – stabile Rennbasis bevorzugen",
-                new String[]{"stable", "baseline", "race", "safe"}),
-        HERTHA("Oma Hertha – sicher/Langstrecke bevorzugen",
-                new String[]{"safe", "long", "endurance", "wet", "stable"});
-
-        final String label;
-        final String[] terms;
-        Style(String label, String[] terms) { this.label = label; this.terms = terms; }
-        @Override public String toString() { return label; }
-    }
-
-    enum FineTune {
-        NONE("Kein Zusatzwunsch – Quelldatei unverändert", new String[]{}),
-        REAR("Ruhiges Heck bevorzugen", new String[]{"stable", "rear", "safe"}),
-        BRAKES("Stabiles Bremsen bevorzugen", new String[]{"brake", "stable"}),
-        BUMPS("Curbs/Bodenwellen bevorzugen", new String[]{"curb", "bump", "baseline"}),
-        LONG_RUN("Langer Stint bevorzugen", new String[]{"long", "endurance", "race"});
-
-        final String label;
-        final String[] terms;
-        FineTune(String label, String[] terms) { this.label = label; this.terms = terms; }
-        @Override public String toString() { return label; }
-    }
-
     static String key(String value) {
         if (value == null) return "";
-        String normalized = Normalizer.normalize(value, Normalizer.Form.NFD)
+        String normalized = value
+                .replace("β", "beta")
+                .replace("–", "-")
+                .replace("—", "-");
+        normalized = Normalizer.normalize(normalized, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}+", "")
                 .toLowerCase(Locale.ROOT)
+                .replaceAll("\\((?:19|20)\\d{2}\\)", "")
+                .replace("volkswagen", "vw")
+                .replace("mercedes-benz", "mercedes")
+                .replace("mercedes-amg", "mercedes")
                 .replace("spa francorchamps", "spafrancorchamps")
-                .replace("nürburgring", "nurburgring");
+                .replace("spa-francorchamps", "spafrancorchamps")
+                .replace("nürburgring", "nurburgring")
+                .replace("nuerburgring", "nurburgring")
+                .replace("mount panorama", "bathurst")
+                .replace("suzuka grand prix", "suzuka")
+                .replace("kyalami grand prix", "kyalami")
+                .replace("circuit of the americas", "cota")
+                .replace("donington park international", "doningtonpark")
+                .replace("watkins glen international", "watkinsglen")
+                .replace("watkins glen short inner loop", "watkinsglenshortinnerloop")
+                .replace("mazda mx-5", "mazda mx5")
+                .replace("honda s-2000", "honda s2000");
         return normalized.replaceAll("[^a-z0-9]+", "");
     }
 
@@ -59,22 +48,6 @@ final class QueryLogic {
         return value.startsWith(CURRENT_VERSION_PREFIX);
     }
 
-    static Comparator<SourceSetup> preferenceComparator(Style style, FineTune fineTune) {
-        return Comparator.<SourceSetup>comparingInt(s -> score(s, style, fineTune)).reversed()
-                .thenComparing(s -> s.source.name())
-                .thenComparing(s -> s.fileName, String.CASE_INSENSITIVE_ORDER);
-    }
-
-    static int score(SourceSetup setup, Style style, FineTune fineTune) {
-        String text = setup.searchableText();
-        int score = 0;
-        for (String term : style.terms) if (text.contains(term)) score += 3;
-        for (String term : fineTune.terms) if (text.contains(term)) score += 2;
-        if (currentVersion(setup.gameVersion)) score += 10;
-        if (setup.source == SourceSetup.Source.SETUPSMARKET) score += 1;
-        return score;
-    }
-
     static String safeCarsetupName(String candidate, String car, String track) {
         String value = candidate == null ? "" : candidate.trim();
         value = value.replace('\\', '_').replace('/', '_')
@@ -87,10 +60,18 @@ final class QueryLogic {
         return value;
     }
 
+    static String generatedName(String car, String track, SetupEngine.Profile profile) {
+        String base = cleanPart(car) + " - " + cleanPart(track) + " - "
+                + cleanPart(profile.title).replace(' ', '_');
+        return safeCarsetupName(base, car, track);
+    }
+
     static void requireRealCarsetup(byte[] bytes) {
         if (bytes == null || bytes.length < 32) throw new IllegalArgumentException("Datei ist zu klein");
-        if (bytes.length > 2_000_000) throw new IllegalArgumentException("Datei ist ungewöhnlich groß");
-        if (bytes[0] == 'P' && bytes[1] == 'K') throw new IllegalArgumentException("ZIP statt .carsetup empfangen");
+        if (bytes.length > 2_000_000) throw new IllegalArgumentException("Datei ist ungewoehnlich gross");
+        if (bytes.length >= 2 && bytes[0] == 'P' && bytes[1] == 'K') {
+            throw new IllegalArgumentException("ZIP statt .carsetup empfangen");
+        }
         String prefix = new String(bytes, 0, Math.min(bytes.length, 96), StandardCharsets.UTF_8)
                 .trim().toLowerCase(Locale.ROOT);
         if (prefix.startsWith("<html") || prefix.startsWith("<!doctype")
@@ -101,7 +82,8 @@ final class QueryLogic {
 
     private static String cleanPart(String value) {
         String part = value == null ? "Setup" : value;
-        part = part.replaceAll("[\\p{Cntrl}\\\\/:*?\"<>|]+", "_").trim();
+        part = part.replaceAll("[\\p{Cntrl}\\\\/:*?\"<>|]+", "_")
+                .replaceAll("\\s+", " ").trim();
         return part.isEmpty() ? "Setup" : part;
     }
 

@@ -22,8 +22,6 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -35,25 +33,35 @@ public final class MainActivity extends Activity {
     private static final int TEXT = Color.WHITE;
     private static final int MUTED = Color.rgb(190, 190, 190);
     private static final int GREEN = Color.rgb(105, 220, 130);
-    private static final int SAVE_REQUEST = 200;
+    private static final int SAVE_REQUEST = 210;
+
+    private static final String[][] FINE_TUNE = {
+            {"Reifendruck: Standard", "Reifendruck: vorne -0,2 psi", "Reifendruck: hinten -0,2 psi", "Reifendruck: alle -0,2 psi / Long Run"},
+            {"Traktionskontrolle: Standard", "Traktionskontrolle: TC 1", "Traktionskontrolle: TC 2", "Traktionskontrolle: TC 3"},
+            {"Bremsbalance: Standard", "Bremsbalance: +0,5 % nach vorn", "Bremsbalance: -0,5 % nach hinten"},
+            {"Differenzial: Standard", "Differenzial-Vorspannung: +10", "Differenzial-Vorspannung: -10"},
+            {"Stabilisatoren: Standard", "Stabilisator hinten: 5 % weicher", "Stabilisator vorne: 5 % weicher", "Stabilisator hinten: 5 % steifer"},
+            {"Federn & Dämpfer: Standard", "Hinterachse: 3 % weicher", "Curbs/Bodenwellen: Fast Damping 8 % weicher", "Dämpfer: 5 % direkter"},
+            {"Bodenfreiheit: Standard", "Bodenfreiheit hinten: +2 mm", "Bodenfreiheit vorne: +2 mm", "Bodenfreiheit vorne/hinten: +2 mm"},
+            {"Heckflügel: Standard", "Heckflügel: +1", "Heckflügel: +2", "Heckflügel: -1"}
+    };
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
-    private final List<SourceSetup> catalog = new ArrayList<>();
-    private final List<SourceSetup> liveMatches = new ArrayList<>();
+    private final Spinner[] fineSpinners = new Spinner[8];
+    private final List<GeneratedSetup> generated = new ArrayList<>();
 
     private Spinner carSpinner;
     private Spinner trackSpinner;
-    private Spinner styleSpinner;
-    private Spinner fineSpinner;
-    private Spinner sourceSpinner;
-    private Button catalogButton;
-    private Button searchButton;
+    private Spinner generatedSpinner;
+    private LinearLayout finePanel;
+    private Button createButton;
     private Button saveButton;
-    private Button browserButton;
+    private Button sourceButton;
     private TextView status;
-    private TextView sourceDetails;
-    private boolean catalogReady;
-    private boolean suppressSelectionEvents;
+    private TextView details;
+    private SourceSetup templateSource;
+    private boolean templateWasExact;
+    private int templateWritableFields;
     private byte[] pendingBytes;
     private String pendingFileName = "";
     private String pendingSha = "";
@@ -61,7 +69,6 @@ public final class MainActivity extends Activity {
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
         setContentView(buildScreen());
-        loadLiveCatalog();
     }
 
     private View buildScreen() {
@@ -71,238 +78,250 @@ public final class MainActivity extends Activity {
         root.setPadding(dp(18), dp(22), dp(18), dp(38));
 
         root.addView(label("THE GODFATHER OF EVO", 26, TEXT, true));
-        root.addView(label("LIVE .CARSETUP ENGINEER", 14, YELLOW, true), margins(0, 3, 0, 2));
-        root.addView(label("VERSION 2.0.0 · NEUAUFBAU", 12, MUTED, false), margins(0, 0, 0, 18));
+        root.addView(label("AC EVO SETUP ENGINEER", 14, YELLOW, true), margins(0, 3, 0, 2));
+        root.addView(label("VERSION 2.1.0 · LIVE + GENERATOR", 12, MUTED, false), margins(0, 0, 0, 18));
 
-        TextView truth = label("Nur echte Online-Dateien: 2 vollständige LIVE-Runden, exaktes Auto, exaktes Layout und AC EVO 0.8.x. Keine Textdatei, kein Spenderauto, kein alter Setup-Cache.", 13, TEXT, false);
+        TextView truth = label(
+                "Jeder Auftrag startet mit einer frischen 2× LIVE-Suche. Gibt es keinen exakten Treffer, verwendet die App nur eine bestätigte .carsetup-Struktur desselben Fahrzeugs und berechnet daraus fünf neue Setups für die gewählte Strecke. Keine Textdatei und kein fremdes Fahrzeug.",
+                13, TEXT, false);
         truth.setPadding(dp(13), dp(12), dp(13), dp(12));
         truth.setBackground(rounded(SURFACE, YELLOW, 1));
         root.addView(truth, margins(0, 0, 0, 18));
 
-        root.addView(section("1 · LIVE-KATALOG"));
-        catalogButton = yellowButton("LIVE-KATALOG 2× NEU LADEN");
-        catalogButton.setOnClickListener(v -> loadLiveCatalog());
-        root.addView(catalogButton, margins(0, 7, 0, 16));
-
-        root.addView(section("2 · FAHRZEUG"));
-        carSpinner = spinner(new String[]{"Live-Katalog wird geladen …"});
+        root.addView(section("1 · FAHRZEUG"));
+        carSpinner = spinner(Catalog.CARS);
         root.addView(carSpinner, margins(0, 7, 0, 16));
 
-        root.addView(section("3 · STRECKE / EXAKTES LAYOUT"));
-        trackSpinner = spinner(new String[]{"Bitte zuerst LIVE-Katalog laden"});
+        root.addView(section("2 · STRECKE / LAYOUT"));
+        trackSpinner = spinner(Catalog.TRACKS);
         root.addView(trackSpinner, margins(0, 7, 0, 16));
 
-        root.addView(section("4 · STIL-PRÄFERENZ"));
-        styleSpinner = spinner(enumLabels(QueryLogic.Style.values()));
-        root.addView(styleSpinner, margins(0, 7, 0, 16));
+        root.addView(section("3 · FEINTUNING"));
+        Button accordion = yellowButton("FEINTUNING (8 BEREICHE)  ▼");
+        root.addView(accordion, margins(0, 7, 0, 8));
+        finePanel = column();
+        finePanel.setVisibility(View.GONE);
+        finePanel.setPadding(dp(12), dp(8), dp(12), dp(12));
+        finePanel.setBackground(rounded(SURFACE, YELLOW, 1));
+        for (int i = 0; i < FINE_TUNE.length; i++) {
+            fineSpinners[i] = spinner(FINE_TUNE[i]);
+            finePanel.addView(fineSpinners[i], margins(0, 4, 0, 4));
+        }
+        root.addView(finePanel, margins(0, 0, 0, 14));
+        accordion.setOnClickListener(v -> {
+            boolean open = finePanel.getVisibility() == View.VISIBLE;
+            finePanel.setVisibility(open ? View.GONE : View.VISIBLE);
+            accordion.setText(open ? "FEINTUNING (8 BEREICHE)  ▼" : "FEINTUNING (8 BEREICHE)  ▲");
+        });
 
-        root.addView(section("5 · OPTIONALER WUNSCH"));
-        fineSpinner = spinner(enumLabels(QueryLogic.FineTune.values()));
-        root.addView(fineSpinner, margins(0, 7, 0, 5));
-        root.addView(label("Der Stil und der optionale Wunsch sortieren nur passende Live-Treffer. Die originale Binärdatei wird niemals heimlich verändert.", 12, MUTED, false), margins(0, 0, 0, 16));
+        createButton = yellowButton("LIVE SUCHEN + 5 SETUPS ERSTELLEN");
+        createButton.setOnClickListener(v -> createFiveSetups());
+        root.addView(createButton, margins(0, 0, 0, 16));
 
-        searchButton = yellowButton("2× LIVE-SUCHE STARTEN");
-        searchButton.setEnabled(false);
-        searchButton.setAlpha(.45f);
-        searchButton.setOnClickListener(v -> searchExactSetups());
-        root.addView(searchButton, margins(0, 0, 0, 16));
+        root.addView(section("4 · ERZEUGTE SETUPS"));
+        generatedSpinner = spinner(new String[]{"Noch keine Setups erzeugt"});
+        generatedSpinner.setEnabled(false);
+        generatedSpinner.setOnItemSelectedListener(selection(this::showSelectedGenerated));
+        root.addView(generatedSpinner, margins(0, 7, 0, 8));
 
-        root.addView(section("6 · BESTÄTIGTE QUELLE"));
-        sourceSpinner = spinner(new String[]{"Noch kein bestätigter Treffer"});
-        sourceSpinner.setEnabled(false);
-        root.addView(sourceSpinner, margins(0, 7, 0, 8));
+        details = label("Nach der LIVE-Suche entstehen hier fünf Varianten: FAST / HOTLAP, FAST CONTROL, STABLE LEARNING, LONG RUN und STABLE + FAST.", 13, MUTED, false);
+        details.setPadding(dp(13), dp(12), dp(13), dp(12));
+        details.setTextIsSelectable(true);
+        details.setBackground(rounded(SURFACE, Color.rgb(62, 62, 62), 1));
+        root.addView(details, margins(0, 0, 0, 8));
 
-        sourceDetails = label("Nach der doppelten Suche stehen hier nur Treffer, die in beiden Runden identisch vorhanden waren.", 13, MUTED, false);
-        sourceDetails.setPadding(dp(13), dp(12), dp(13), dp(12));
-        sourceDetails.setBackground(rounded(SURFACE, Color.rgb(62, 62, 62), 1));
-        root.addView(sourceDetails, margins(0, 0, 0, 8));
-
-        browserButton = yellowButton("QUELLE IM BROWSER ÖFFNEN");
-        browserButton.setVisibility(View.GONE);
-        browserButton.setOnClickListener(v -> openSelectedSource());
-        root.addView(browserButton, margins(0, 0, 0, 8));
-
-        saveButton = yellowButton("ECHTE .CARSETUP SPEICHERN");
+        saveButton = yellowButton("AUSGEWÄHLTE .CARSETUP SPEICHERN");
         saveButton.setEnabled(false);
         saveButton.setAlpha(.45f);
-        saveButton.setOnClickListener(v -> saveFreshBinary());
-        root.addView(saveButton, margins(0, 0, 0, 18));
+        saveButton.setOnClickListener(v -> saveSelectedGenerated());
+        root.addView(saveButton, margins(0, 0, 0, 8));
 
-        root.addView(section("LIVE-PRÜFBERICHT"));
-        status = label("Die Live-Prüfung startet …", 13, MUTED, false);
+        sourceButton = yellowButton("VERWENDETE LIVE-QUELLE ÖFFNEN");
+        sourceButton.setVisibility(View.GONE);
+        sourceButton.setOnClickListener(v -> openTemplateSource());
+        root.addView(sourceButton, margins(0, 0, 0, 18));
+
+        root.addView(section("LIVE- / SELBSTPRÜFBERICHT"));
+        status = label("Bereit. Fahrzeug und Strecke wählen, dann 5 Setups erstellen.", 13, MUTED, false);
         status.setPadding(dp(13), dp(12), dp(13), dp(12));
         status.setTextIsSelectable(true);
         status.setBackground(rounded(SURFACE, Color.rgb(62, 62, 62), 1));
         root.addView(status, margins(0, 7, 0, 18));
 
-        TextView footer = label("Quellen: SetupsMarket + RacePlace/DTVR · Speichern ausschließlich als .carsetup-Binärdatei · © 2026 Greenbuddy1976", 12, MUTED, false);
+        TextView footer = label(
+                "Quellen: SetupsMarket + RacePlace/DTVR · Binärformat: bestätigte Float32-Setupfelder · © 2026 Greenbuddy1976",
+                12, MUTED, false);
         footer.setGravity(Gravity.CENTER);
         root.addView(footer);
 
-        carSpinner.setOnItemSelectedListener(selection(() -> {
-            if (!catalogReady) return;
-            populateTracks(selected(carSpinner));
-            invalidateLiveResult();
-        }));
-        trackSpinner.setOnItemSelectedListener(selection(this::invalidateLiveResult));
-        styleSpinner.setOnItemSelectedListener(selection(this::invalidateLiveResult));
-        fineSpinner.setOnItemSelectedListener(selection(this::invalidateLiveResult));
-        sourceSpinner.setOnItemSelectedListener(selection(this::showSelectedSource));
+        carSpinner.setOnItemSelectedListener(selection(this::invalidateGenerated));
+        trackSpinner.setOnItemSelectedListener(selection(this::invalidateGenerated));
+        for (Spinner fine : fineSpinners) fine.setOnItemSelectedListener(selection(this::invalidateGenerated));
 
         scroll.addView(root);
         return scroll;
     }
 
-    private void loadLiveCatalog() {
+    private void createFiveSetups() {
         if (worker.isShutdown()) return;
-        setBusy(true, "LIVE-Katalog: beide Quellen werden zweimal vollständig neu gelesen …");
-        catalogReady = false;
+        final String car = selected(carSpinner);
+        final String track = selected(trackSpinner);
+        final int[] fine = fineSelections();
+        final String fingerprint = fingerprint(car, track, fine);
+        clearGenerated();
+        setBusy(true, "LIVE-Suche startet: exaktes Fahrzeug + exaktes Layout, Runde 1/2 …");
+
         worker.execute(() -> {
+            List<String> notes = new ArrayList<>();
             try {
-                LiveSetupSearch.Result result = LiveSetupSearch.runTwoRounds("", "",
+                LiveSetupSearch.Result exact = LiveSetupSearch.runTwoRounds(car, track,
                         message -> runOnUiThread(() -> status.setText(message)));
-                runOnUiThread(() -> applyCatalog(result));
+                notes.addAll(exact.notices);
+                TemplateChoice choice = findUsableTemplate(exact.setups, true, notes);
+                LiveSetupSearch.Result sameCar = null;
+
+                if (choice == null) {
+                    runOnUiThread(() -> status.setText(
+                            "Kein sicher nutzbarer exakter LIVE-Treffer. Suche jetzt 2× nach einer .carsetup-Struktur desselben Fahrzeugs …"));
+                    sameCar = LiveSetupSearch.runTwoRounds(car, "",
+                            message -> runOnUiThread(() -> status.setText(message)));
+                    notes.addAll(sameCar.notices);
+                    choice = findUsableTemplate(sameCar.setups, false, notes);
+                }
+
+                if (choice == null) {
+                    final LiveSetupSearch.Result sameResult = sameCar;
+                    runOnUiThread(() -> {
+                        if (!fingerprint.equals(fingerprint(car, track, fine))) {
+                            setBusy(false, null);
+                            return;
+                        }
+                        status.setText("❌ Setupwerte wurden berechnet, aber für " + car
+                                + " wurde in beiden LIVE-Quellen keine sichere 0.8.x-.carsetup-Struktur desselben Fahrzeugs gefunden.\n"
+                                + "Es wird bewusst keine fremde Fahrzeugdatei als Fake-.carsetup ausgegeben."
+                                + noticeText(notes));
+                        details.setText("Die Berechnungslogik ist vorhanden, aber ohne bestätigte Binärstruktur desselben Fahrzeugs wäre eine ladbare .carsetup-Datei nicht verifizierbar."
+                                + (sameResult == null ? "" : "\nSame-Car LIVE-Treffer: " + sameResult.setups.size()));
+                        setBusy(false, null);
+                    });
+                    return;
+                }
+
+                List<GeneratedSetup> outputs = new ArrayList<>();
+                for (SetupEngine.Profile profile : SetupEngine.Profile.values()) {
+                    List<SetupEngine.Change> changes = SetupEngine.changes(car, track, profile, fine);
+                    BinarySetupEditor.EditResult edit = BinarySetupEditor.apply(choice.bytes, changes);
+                    if (edit.applied == 0) {
+                        throw new IllegalStateException(profile.title + ": kein bestätigtes Feld konnte geschrieben werden");
+                    }
+                    String fileName = QueryLogic.generatedName(car, track, profile);
+                    String sha = LiveSetupSearch.sha256(edit.bytes);
+                    outputs.add(new GeneratedSetup(profile, fileName, edit.bytes, sha, edit));
+                }
+
+                TemplateChoice finalChoice = choice;
+                runOnUiThread(() -> applyGenerated(outputs, finalChoice, fingerprint, car, track, fine, notes));
             } catch (Exception ex) {
                 runOnUiThread(() -> {
-                    status.setText("LIVE-Katalog fehlgeschlagen: " + message(ex)
-                            + "\nEs wird kein alter Bestand verwendet.");
+                    if (!fingerprint.equals(fingerprint(car, track, fine))) {
+                        setBusy(false, null);
+                        return;
+                    }
+                    clearGenerated();
+                    status.setText("❌ Erzeugung fehlgeschlagen: " + message(ex) + noticeText(notes));
                     setBusy(false, null);
                 });
             }
         });
     }
 
-    private void applyCatalog(LiveSetupSearch.Result result) {
-        catalog.clear();
-        catalog.addAll(result.setups);
-        Set<String> cars = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        for (SourceSetup setup : catalog) cars.add(setup.car);
-        if (cars.isEmpty()) {
-            status.setText("Beide LIVE-Runden sind beendet, aber es gibt keine doppelt bestätigten 0.8.x-Dateien.");
-            setBusy(false, null);
-            return;
-        }
-        suppressSelectionEvents = true;
-        setValues(carSpinner, cars.toArray(new String[0]));
-        catalogReady = true;
-        populateTracks(selected(carSpinner));
-        suppressSelectionEvents = false;
-        setBusy(false, null);
-        enableSearch(true);
-        status.setText("✅ LIVE-Katalog bestätigt\nRunde 1: " + result.firstRoundCount
-                + " aktuelle Dateien\nRunde 2: " + result.secondRoundCount
-                + " aktuelle Dateien\nDoppelt bestätigt: " + catalog.size()
-                + " Dateien / " + cars.size() + " Fahrzeuge"
-                + noticeText(result.notices));
-    }
+    private TemplateChoice findUsableTemplate(List<SourceSetup> candidates, boolean exact,
+                                               List<String> notes) {
+        if (candidates == null || candidates.isEmpty()) return null;
+        List<SourceSetup> sorted = new ArrayList<>(candidates);
+        sorted.sort(exact
+                ? Comparator.comparingInt(s -> s.source == SourceSetup.Source.SETUPSMARKET ? 0 : 1)
+                : Comparator.comparingInt(s -> s.source == SourceSetup.Source.RACEPLACE ? 0 : 1));
 
-    private void populateTracks(String car) {
-        Set<String> tracks = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        for (SourceSetup setup : catalog) if (QueryLogic.exact(car, setup.car)) tracks.add(setup.track);
-        setValues(trackSpinner, tracks.isEmpty()
-                ? new String[]{"Kein aktuelles 0.8.x-Layout gefunden"}
-                : tracks.toArray(new String[0]));
-    }
-
-    private void searchExactSetups() {
-        if (!catalogReady) return;
-        String car = selected(carSpinner);
-        String track = selected(trackSpinner);
-        if (car.isEmpty() || track.startsWith("Kein aktuelles")) return;
-        QueryLogic.Style style = QueryLogic.Style.values()[styleSpinner.getSelectedItemPosition()];
-        QueryLogic.FineTune fine = QueryLogic.FineTune.values()[fineSpinner.getSelectedItemPosition()];
-        String fingerprint = fingerprint();
-        setBusy(true, "Exakte Kombination wird in zwei neuen LIVE-Runden geprüft …");
-        worker.execute(() -> {
+        int tries = 0;
+        for (SourceSetup source : sorted) {
+            if (tries++ >= 12) break;
             try {
-                LiveSetupSearch.Result result = LiveSetupSearch.runTwoRounds(car, track,
-                        message -> runOnUiThread(() -> status.setText(message)));
-                List<SourceSetup> sorted = new ArrayList<>(result.setups);
-                sorted.sort(QueryLogic.preferenceComparator(style, fine));
-                runOnUiThread(() -> applySearchResult(result, sorted, fingerprint));
+                byte[] bytes = LiveSetupSearch.downloadFresh(source);
+                int writable = BinarySetupEditor.countWritableFields(bytes);
+                if (writable >= 6) return new TemplateChoice(source, bytes, exact, writable);
+                notes.add(source.displayLabel() + ": nur " + writable + " sichere Felder");
             } catch (Exception ex) {
-                runOnUiThread(() -> {
-                    clearLiveMatches();
-                    status.setText("LIVE-Suche fehlgeschlagen: " + message(ex)
-                            + "\nSpeichern bleibt gesperrt; es wird nichts erfunden.");
-                    setBusy(false, null);
-                });
+                notes.add(source.displayLabel() + ": " + message(ex));
             }
-        });
+        }
+        return null;
     }
 
-    private void applySearchResult(LiveSetupSearch.Result result, List<SourceSetup> matches,
-                                   String fingerprint) {
-        if (!fingerprint.equals(fingerprint())) {
-            clearLiveMatches();
-            status.setText("Auswahl wurde während der Suche geändert. Bitte die 2× LIVE-Suche erneut starten.");
+    private void applyGenerated(List<GeneratedSetup> outputs, TemplateChoice choice,
+                                String originalFingerprint, String car, String track,
+                                int[] fine, List<String> notes) {
+        if (!originalFingerprint.equals(fingerprint(car, track, fine))) {
+            clearGenerated();
+            status.setText("Auswahl wurde während der Suche geändert. Bitte die Erstellung erneut starten.");
             setBusy(false, null);
             return;
         }
-        liveMatches.clear();
-        liveMatches.addAll(matches);
-        if (matches.isEmpty()) {
-            clearLiveMatches();
-            status.setText("Kein exakter, in beiden LIVE-Runden bestätigter 0.8.x-Treffer für\n"
-                    + selected(carSpinner) + " · " + selected(trackSpinner)
-                    + "\nSpeichern bleibt gesperrt. Keine Ersatzdatei, kein ähnliches Layout."
-                    + noticeText(result.notices));
-            setBusy(false, null);
-            return;
-        }
-        String[] labels = new String[matches.size()];
-        for (int i = 0; i < labels.length; i++) labels[i] = matches.get(i).displayLabel();
-        suppressSelectionEvents = true;
-        setValues(sourceSpinner, labels);
-        sourceSpinner.setEnabled(true);
-        suppressSelectionEvents = false;
+
+        generated.clear();
+        generated.addAll(outputs);
+        templateSource = choice.source;
+        templateWasExact = choice.exact;
+        templateWritableFields = choice.writableFields;
+
+        String[] labels = new String[generated.size()];
+        for (int i = 0; i < labels.length; i++) labels[i] = generated.get(i).profile.toString();
+        setValues(generatedSpinner, labels);
+        generatedSpinner.setEnabled(true);
         saveButton.setEnabled(true);
         saveButton.setAlpha(1f);
-        browserButton.setVisibility(View.VISIBLE);
-        showSelectedSource();
-        status.setText("✅ 2× LIVE bestätigt\nRunde 1: " + result.firstRoundCount
-                + " exakte Treffer\nRunde 2: " + result.secondRoundCount
-                + " exakte Treffer\nFreigegeben: " + matches.size()
-                + " echte .carsetup-Datei(en)"
-                + noticeText(result.notices));
+        sourceButton.setVisibility(View.VISIBLE);
+        showSelectedGenerated();
+
+        String provider = templateSource.source == SourceSetup.Source.SETUPSMARKET
+                ? "SetupsMarket" : "RacePlace/DTVR";
+        status.setText("✅ 5 .carsetup-Dateien erzeugt und intern erneut geparst\n"
+                + "LIVE-Basis: " + (choice.exact ? "EXAKTER Auto+Strecke-Treffer" : "SAME-CAR Struktur; Werte neu berechnet")
+                + "\nQuelle: " + provider + " · " + templateSource.car + " · " + templateSource.track
+                + " · v" + templateSource.gameVersion
+                + "\nBestätigte schreibbare Felder in der Struktur: " + templateWritableFields
+                + "\nProfile: FAST / HOTLAP · FAST CONTROL · STABLE LEARNING · LONG RUN · STABLE + FAST"
+                + (QueryLogic.exact(car, "Ford Mustang GT3")
+                    ? "\nMustang-Regel: STABLE + FAST erzwingt TC1 = 1, sofern das Feld im Fahrzeug vorhanden ist." : "")
+                + noticeText(notes));
         setBusy(false, null);
     }
 
-    private void showSelectedSource() {
-        SourceSetup setup = selectedSetup();
+    private void showSelectedGenerated() {
+        GeneratedSetup setup = selectedGenerated();
         if (setup == null) return;
-        String provider = setup.source == SourceSetup.Source.SETUPSMARKET
-                ? "SetupsMarket" : "RacePlace/DTVR";
-        sourceDetails.setText("Quelle: " + provider + "\nAuto: " + setup.car
-                + "\nLayout: " + setup.track + "\nSpielversion: " + setup.gameVersion
-                + "\nDatei: " + setup.fileName
-                + "\n\nStil/Wunsch dienen nur zur Sortierung. Gespeichert wird die unveränderte Originaldatei.");
+        String provider = templateSource == null ? "" :
+                (templateSource.source == SourceSetup.Source.SETUPSMARKET ? "SetupsMarket" : "RacePlace/DTVR");
+        StringBuilder text = new StringBuilder();
+        text.append(SetupEngine.summary(selected(carSpinner), selected(trackSpinner), setup.profile, setup.edit))
+                .append("\n\nDatei: ").append(setup.fileName)
+                .append("\nGröße: ").append(setup.bytes.length).append(" Bytes")
+                .append("\nSHA-256: ").append(setup.sha);
+        if (templateSource != null) {
+            text.append("\n\nLIVE-Strukturbasis: ").append(provider)
+                    .append(" · ").append(templateWasExact ? "exakte Strecke" : "gleiches Fahrzeug")
+                    .append(" · ").append(templateSource.track)
+                    .append(" · v").append(templateSource.gameVersion);
+        }
+        details.setText(text.toString());
     }
 
-    private void saveFreshBinary() {
-        SourceSetup setup = selectedSetup();
+    private void saveSelectedGenerated() {
+        GeneratedSetup setup = selectedGenerated();
         if (setup == null) return;
-        setBusy(true, "Originaldatei wird jetzt frisch von der bestätigten Quelle geladen und geprüft …");
-        worker.execute(() -> {
-            try {
-                byte[] bytes = LiveSetupSearch.downloadFresh(setup);
-                String sha = LiveSetupSearch.sha256(bytes);
-                runOnUiThread(() -> chooseSaveLocation(setup.fileName, bytes, sha));
-            } catch (Exception ex) {
-                runOnUiThread(() -> {
-                    pendingBytes = null;
-                    status.setText("Speichern gesperrt: Die Quelle lieferte keine gültige .carsetup-Datei.\n"
-                            + message(ex));
-                    setBusy(false, null);
-                });
-            }
-        });
-    }
-
-    private void chooseSaveLocation(String fileName, byte[] bytes, String sha) {
-        pendingBytes = bytes;
-        pendingFileName = QueryLogic.safeCarsetupName(fileName, selected(carSpinner), selected(trackSpinner));
-        pendingSha = sha;
+        pendingBytes = setup.bytes;
+        pendingFileName = setup.fileName;
+        pendingSha = setup.sha;
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("application/octet-stream");
@@ -315,117 +334,106 @@ public final class MainActivity extends Activity {
         if (requestCode != SAVE_REQUEST) return;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
             pendingBytes = null;
-            setBusy(false, null);
-            status.setText("Speichern abgebrochen. Es wurde keine Datei verändert.");
+            status.setText("Speichern abgebrochen. Die erzeugten Setups bleiben in der App erhalten.");
             return;
         }
         if (pendingBytes == null) {
-            setBusy(false, null);
-            status.setText("Speichern abgebrochen: Es liegen keine geprüften Binärdaten vor.");
+            status.setText("Speichern abgebrochen: keine geprüften Binärdaten vorhanden.");
             return;
         }
         try (OutputStream output = getContentResolver().openOutputStream(data.getData(), "w")) {
             if (output == null) throw new IllegalStateException("Zieldatei konnte nicht geöffnet werden");
             output.write(pendingBytes);
             output.flush();
-            status.setText("✅ Echte .carsetup gespeichert\nDatei: " + pendingFileName
-                    + "\nGröße: " + pendingBytes.length + " Bytes\nSHA-256: " + pendingSha);
+            status.setText("✅ .carsetup gespeichert\nDatei: " + pendingFileName
+                    + "\nGröße: " + pendingBytes.length + " Bytes\nSHA-256: " + pendingSha
+                    + "\nDie Datei wurde vor dem Speichern als Binärstruktur selbstgeprüft.");
         } catch (Exception ex) {
             status.setText("Speichern fehlgeschlagen: " + message(ex));
         } finally {
             pendingBytes = null;
-            setBusy(false, null);
         }
     }
 
-    private void openSelectedSource() {
-        SourceSetup setup = selectedSetup();
-        if (setup == null) return;
-        String address = setup.source == SourceSetup.Source.SETUPSMARKET
-                ? "https://setupsmarket.com/setup/" + setup.sourceId
+    private void openTemplateSource() {
+        if (templateSource == null) return;
+        String url = templateSource.source == SourceSetup.Source.SETUPSMARKET
+                ? "https://setupsmarket.com/setup/" + templateSource.sourceId
                 : "https://raceplace.racing/downloads/";
-        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(address)));
+        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
     }
 
-    private void invalidateLiveResult() {
-        if (suppressSelectionEvents || !catalogReady) return;
-        clearLiveMatches();
-        status.setText("Auswahl geändert. Bitte 2× LIVE-Suche starten; alte Treffer werden nicht weiterverwendet.");
+    private void invalidateGenerated() {
+        if (generated.isEmpty()) return;
+        clearGenerated();
+        status.setText("Auswahl geändert. Für die neue Kombination wird beim nächsten Erstellen wieder frisch LIVE gesucht.");
     }
 
-    private void clearLiveMatches() {
-        liveMatches.clear();
-        setValues(sourceSpinner, new String[]{"Noch kein bestätigter Treffer"});
-        sourceSpinner.setEnabled(false);
+    private void clearGenerated() {
+        generated.clear();
+        templateSource = null;
+        templateWasExact = false;
+        templateWritableFields = 0;
+        setValues(generatedSpinner, new String[]{"Noch keine Setups erzeugt"});
+        generatedSpinner.setEnabled(false);
         saveButton.setEnabled(false);
         saveButton.setAlpha(.45f);
-        browserButton.setVisibility(View.GONE);
-        sourceDetails.setText("Nach der doppelten Suche stehen hier nur Treffer, die in beiden Runden identisch vorhanden waren.");
+        sourceButton.setVisibility(View.GONE);
     }
 
-    private SourceSetup selectedSetup() {
-        int index = sourceSpinner.getSelectedItemPosition();
-        return index >= 0 && index < liveMatches.size() ? liveMatches.get(index) : null;
+    private GeneratedSetup selectedGenerated() {
+        if (generated.isEmpty() || generatedSpinner == null) return null;
+        int index = generatedSpinner.getSelectedItemPosition();
+        return index >= 0 && index < generated.size() ? generated.get(index) : null;
     }
 
-    private String fingerprint() {
-        return QueryLogic.key(selected(carSpinner)) + "|" + QueryLogic.key(selected(trackSpinner))
-                + "|" + styleSpinner.getSelectedItemPosition() + "|" + fineSpinner.getSelectedItemPosition();
+    private int[] fineSelections() {
+        int[] out = new int[fineSpinners.length];
+        for (int i = 0; i < fineSpinners.length; i++) out[i] = fineSpinners[i].getSelectedItemPosition();
+        return out;
     }
 
-    private void setBusy(boolean busy, String message) {
-        catalogButton.setEnabled(!busy);
-        searchButton.setEnabled(!busy && catalogReady);
-        if (busy) {
-            catalogButton.setAlpha(.45f);
-            searchButton.setAlpha(.45f);
-            saveButton.setEnabled(false);
-            saveButton.setAlpha(.45f);
-            if (message != null) status.setText(message);
-        } else {
-            catalogButton.setAlpha(1f);
-            searchButton.setAlpha(catalogReady ? 1f : .45f);
-            if (!liveMatches.isEmpty()) {
-                saveButton.setEnabled(true);
-                saveButton.setAlpha(1f);
-            }
-        }
-    }
-
-    private void enableSearch(boolean enabled) {
-        searchButton.setEnabled(enabled);
-        searchButton.setAlpha(enabled ? 1f : .45f);
+    private String fingerprint(String car, String track, int[] fine) {
+        StringBuilder out = new StringBuilder(QueryLogic.key(car)).append('|').append(QueryLogic.key(track));
+        for (int value : fine) out.append('|').append(value);
+        return out.toString();
     }
 
     private String noticeText(List<String> notices) {
         if (notices == null || notices.isEmpty()) return "";
-        Set<String> unique = new TreeSet<>(Comparator.naturalOrder());
-        unique.addAll(notices);
-        return "\nHinweise: " + String.join(" · ", unique);
+        StringBuilder out = new StringBuilder("\n\nQuellenhinweise:");
+        int shown = 0;
+        for (String notice : notices) {
+            if (notice == null || notice.isBlank()) continue;
+            if (shown++ >= 6) {
+                out.append("\n• weitere Hinweise ausgeblendet");
+                break;
+            }
+            out.append("\n• ").append(notice);
+        }
+        return out.toString();
+    }
+
+    private void setBusy(boolean busy, String message) {
+        createButton.setEnabled(!busy);
+        createButton.setAlpha(busy ? .45f : 1f);
+        if (busy) {
+            saveButton.setEnabled(false);
+            saveButton.setAlpha(.45f);
+        } else if (!generated.isEmpty()) {
+            saveButton.setEnabled(true);
+            saveButton.setAlpha(1f);
+        }
+        if (message != null) status.setText(message);
     }
 
     private AdapterView.OnItemSelectedListener selection(Runnable action) {
         return new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if (!suppressSelectionEvents) action.run();
+                action.run();
             }
             @Override public void onNothingSelected(AdapterView<?> parent) { }
         };
-    }
-
-    private String[] enumLabels(Object[] values) {
-        String[] labels = new String[values.length];
-        for (int i = 0; i < values.length; i++) labels[i] = values[i].toString();
-        return labels;
-    }
-
-    private void setValues(Spinner spinner, String[] values) {
-        spinner.setAdapter(new DarkAdapter(values));
-    }
-
-    private String selected(Spinner spinner) {
-        Object value = spinner.getSelectedItem();
-        return value == null ? "" : value.toString();
     }
 
     private Spinner spinner(String[] values) {
@@ -435,6 +443,16 @@ public final class MainActivity extends Activity {
         spinner.setMinimumHeight(dp(52));
         spinner.setBackground(rounded(SURFACE_2, YELLOW, 1));
         return spinner;
+    }
+
+    private void setValues(Spinner spinner, String[] values) {
+        if (spinner == null) return;
+        spinner.setAdapter(new DarkAdapter(values));
+    }
+
+    private String selected(Spinner spinner) {
+        Object value = spinner == null ? null : spinner.getSelectedItem();
+        return value == null ? "" : String.valueOf(value).trim();
     }
 
     private final class DarkAdapter extends ArrayAdapter<String> {
@@ -459,54 +477,54 @@ public final class MainActivity extends Activity {
     }
 
     private Button yellowButton(String value) {
-        Button button = new Button(this);
-        button.setText(value);
-        button.setTextColor(Color.BLACK);
-        button.setTextSize(14);
-        button.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        button.setMinHeight(dp(54));
-        button.setBackground(rounded(YELLOW, YELLOW, 0));
-        return button;
+        Button b = new Button(this);
+        b.setText(value);
+        b.setTextColor(Color.BLACK);
+        b.setTextSize(14);
+        b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        b.setMinHeight(dp(54));
+        b.setBackground(rounded(YELLOW, YELLOW, 0));
+        return b;
     }
 
     private TextView section(String value) { return label(value, 15, YELLOW, true); }
 
     private TextView label(String value, int size, int color, boolean bold) {
-        TextView text = new TextView(this);
-        text.setText(value);
-        text.setTextSize(size);
-        text.setTextColor(color);
-        if (bold) text.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        return text;
+        TextView t = new TextView(this);
+        t.setText(value);
+        t.setTextSize(size);
+        t.setTextColor(color);
+        if (bold) t.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        return t;
     }
 
     private LinearLayout column() {
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setBackgroundColor(BG);
-        return layout;
+        LinearLayout l = new LinearLayout(this);
+        l.setOrientation(LinearLayout.VERTICAL);
+        l.setBackgroundColor(BG);
+        return l;
     }
 
     private LinearLayout.LayoutParams margins(int left, int top, int right, int bottom) {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.setMargins(dp(left), dp(top), dp(right), dp(bottom));
-        return params;
+        p.setMargins(dp(left), dp(top), dp(right), dp(bottom));
+        return p;
     }
 
     private GradientDrawable rounded(int color, int stroke, int strokeWidth) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
-        drawable.setCornerRadius(dp(9));
-        if (strokeWidth > 0) drawable.setStroke(dp(strokeWidth), stroke);
-        return drawable;
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(dp(9));
+        if (strokeWidth > 0) d.setStroke(dp(strokeWidth), stroke);
+        return d;
     }
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
-    private String message(Exception ex) {
+    private static String message(Exception ex) {
         String value = ex.getMessage();
         return value == null || value.isBlank() ? ex.getClass().getSimpleName() : value;
     }
@@ -514,5 +532,36 @@ public final class MainActivity extends Activity {
     @Override protected void onDestroy() {
         worker.shutdownNow();
         super.onDestroy();
+    }
+
+    private static final class TemplateChoice {
+        final SourceSetup source;
+        final byte[] bytes;
+        final boolean exact;
+        final int writableFields;
+
+        TemplateChoice(SourceSetup source, byte[] bytes, boolean exact, int writableFields) {
+            this.source = source;
+            this.bytes = bytes;
+            this.exact = exact;
+            this.writableFields = writableFields;
+        }
+    }
+
+    private static final class GeneratedSetup {
+        final SetupEngine.Profile profile;
+        final String fileName;
+        final byte[] bytes;
+        final String sha;
+        final BinarySetupEditor.EditResult edit;
+
+        GeneratedSetup(SetupEngine.Profile profile, String fileName, byte[] bytes,
+                       String sha, BinarySetupEditor.EditResult edit) {
+            this.profile = profile;
+            this.fileName = fileName;
+            this.bytes = bytes;
+            this.sha = sha;
+            this.edit = edit;
+        }
     }
 }
