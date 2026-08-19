@@ -34,4 +34,9 @@ public final class SetupRequest {
     public String exactKey() {
         return car.getId() + "|" + layout.getId() + "|" + gameVersion;
     }
+
+    public String requestKey() {
+        return exactKey() + "|" + style.name() + "|" + fineTuningProblem.name()
+                + "|" + fineTuningStrength.getLevel();
+    }
 }

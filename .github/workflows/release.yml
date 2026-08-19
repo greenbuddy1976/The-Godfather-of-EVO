@@ -2,6 +2,8 @@ name: Verified Android Release
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -52,15 +54,24 @@ jobs:
         shell: bash
         env:
           RELEASE_KEYSTORE_B64: ${{ secrets.ACEVO_KEYSTORE_BASE64 }}
-          VERIFIED_WRITERS_AAR_B64: ${{ secrets.ACEVO_WRITER_AAR_BASE64 }}
+          VERIFIED_WRITERS_AAR_URL: ${{ secrets.ACEVO_WRITER_AAR_URL }}
+          VERIFIED_WRITERS_AAR_SHA256: ${{ secrets.ACEVO_WRITER_AAR_SHA256 }}
         run: |
           set -euo pipefail
+          umask 077
           test -n "$RELEASE_KEYSTORE_B64"
-          test -n "$VERIFIED_WRITERS_AAR_B64"
+          test -n "$VERIFIED_WRITERS_AAR_URL"
+          [[ "$VERIFIED_WRITERS_AAR_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]
           mkdir -p release-secrets app/libs verification-reports
           printf '%s' "$RELEASE_KEYSTORE_B64" | base64 --decode > "$RELEASE_KEYSTORE_PATH"
-          printf '%s' "$VERIFIED_WRITERS_AAR_B64" | base64 --decode > app/libs/verified-writers.aar
-          chmod 600 "$RELEASE_KEYSTORE_PATH"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            "$VERIFIED_WRITERS_AAR_URL" --output app/libs/verified-writers.aar
+          test -s app/libs/verified-writers.aar
+          actual_writer_sha="$(sha256sum app/libs/verified-writers.aar | awk '{print $1}')"
+          [[ "$actual_writer_sha" == "${VERIFIED_WRITERS_AAR_SHA256,,}" ]]
+          printf '%s  %s\n' "$actual_writer_sha" 'app/libs/verified-writers.aar' \
+            > verification-reports/writer-aar-sha256.txt
+          chmod 600 "$RELEASE_KEYSTORE_PATH" app/libs/verified-writers.aar
 
       - name: Verify confirmed certificate
         run: bash ci/verify_certificate.sh
@@ -80,7 +91,7 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk The-Godfather-of-EVO-1.1.1.apk
           bash ci/verify_apk.sh The-Godfather-of-EVO-1.1.1.apk
 
-      - name: Install APK and run real 12,425 binary matrix
+      - name: Install, launch and run protected 12,425 binary contract matrix
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -89,6 +100,11 @@ jobs:
           disable-animations: true
           script: |
             adb install -r The-Godfather-of-EVO-1.1.1.apk
+            adb shell am force-stop com.greenbuddy.acevosetupengineer
+            adb shell am start -W -n com.greenbuddy.acevosetupengineer/.MainActivity \
+              | tee verification-reports/app-start.txt
+            grep -Fq 'Status: ok' verification-reports/app-start.txt
+            test -n "$(adb shell pidof com.greenbuddy.acevosetupengineer | tr -d '\r')"
             gradle --no-daemon --no-build-cache --no-configuration-cache connectedReleaseAndroidTest
 
       - name: Collect reports
@@ -98,10 +114,13 @@ jobs:
           mkdir -p verification-reports/tests verification-reports/lint
           cp -R app/build/reports/tests/. verification-reports/tests/ 2>/dev/null || true
           cp -R app/build/reports/androidTests/. verification-reports/androidTests/ 2>/dev/null || true
+          cp -R app/build/test-results/. verification-reports/test-results/ 2>/dev/null || true
+          cp -R app/build/outputs/androidTest-results/. verification-reports/androidTest-results/ 2>/dev/null || true
           cp -R app/build/reports/lint-results-release.* verification-reports/lint/ 2>/dev/null || true
+          cp app/build/reports/lint-results.txt verification-reports/lint/ 2>/dev/null || true
 
       - name: Upload signed APK and verification reports
-        if: success()
+        if: success() && github.event_name == 'push'
         uses: actions/upload-artifact@v4
         with:
           name: The-Godfather-of-EVO-1.1.1-verified

@@ -29,8 +29,8 @@ public final class LiveLookupContractTest {
         LiveLookupReport report = new LiveLookupCoordinator(Collections.singletonList(source))
                 .findExact(request);
 
-        assertEquals(1, report.getCompleteRounds());
-        assertEquals(1, calls.get());
+        assertEquals(2, report.getCompleteRounds());
+        assertEquals(2, calls.get());
         assertEquals(1, report.getCandidates().size());
         assertEquals(exact.getSetupId(), report.getCandidates().get(0).getSetupId());
     }
@@ -54,6 +54,27 @@ public final class LiveLookupContractTest {
 
     @Test public void exactCacheKeysDifferByLayout() {
         assertNotEquals(request(0).exactKey(), request(1).exactKey());
+    }
+
+    @Test public void aHungSourceIsBoundedByTheRoundDeadline() {
+        LiveSetupSource hanging = new LiveSetupSource() {
+            @Override public String name() { return "hanging"; }
+            @Override public List<LiveCandidate> exactLookup(SetupRequest request) throws Exception {
+                Thread.sleep(10_000L);
+                return Collections.emptyList();
+            }
+            @Override public List<LiveCandidate> fetchConfirmedIndex() {
+                return Collections.emptyList();
+            }
+        };
+        long started = System.nanoTime();
+        LiveLookupReport report = new LiveLookupCoordinator(
+                Collections.singletonList(hanging), 25L).findExactRound(request(0));
+        long elapsedMillis = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(
+                System.nanoTime() - started);
+        assertTrue("Deadline exceeded: " + elapsedMillis, elapsedMillis < 1_000L);
+        assertTrue(report.hasTechnicalErrors());
+        assertTrue(report.getTechnicalErrors().get(0).contains("Timeout"));
     }
 
     private static SetupRequest request(int layoutIndex) {

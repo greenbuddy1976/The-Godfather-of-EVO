@@ -7,6 +7,9 @@ import com.greenbuddy.acevosetupengineer.model.GeneratedSetup;
 import com.greenbuddy.acevosetupengineer.model.GenerationOutcome;
 import com.greenbuddy.acevosetupengineer.model.SetupRequest;
 import com.greenbuddy.acevosetupengineer.model.SetupStyle;
+import com.greenbuddy.acevosetupengineer.model.SetupValue;
+import com.greenbuddy.acevosetupengineer.verification.BinaryInspection;
+import com.greenbuddy.acevosetupengineer.verification.VerifiedBinaryInspector;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,28 +26,31 @@ public final class SetupGenerationService {
     }
 
     public GenerationOutcome generate(SetupRequest request) {
-        LiveLookupReport liveReport = live.findExact(request);
-        String liveState = liveReport.hasTechnicalErrors()
-                ? "LIVE-QUELLE TECHNISCH NICHT ERREICHBAR"
-                : liveReport.getCandidates().isEmpty()
-                    ? "KEIN EXAKTER LIVE-TREFFER" : "LIVE EXACT GEFUNDEN";
-
-        if (provider != null) {
-            for (LiveCandidate candidate : liveReport.getCandidates()) {
-                try {
-                    GeneratedSetup setup = provider.verifyLiveExact(request, candidate);
-                    if (isExactVerified(setup, request)) {
-                        return GenerationOutcome.success(GenerationOutcome.State.LIVE_EXACT_FOUND,
-                                "LIVE EXACT GEFUNDEN", "LIVE EXACT – vollständig binär geprüft", setup);
+        boolean providerVersionMatches = provider != null
+                && request.getGameVersion().equals(provider.supportedGameVersion());
+        List<String> liveErrors = new ArrayList<>();
+        for (int round = 0; round < LiveLookupCoordinator.MAX_COMPLETE_ROUNDS; round++) {
+            LiveLookupReport liveReport = live.findExactRound(request);
+            liveErrors.addAll(liveReport.getTechnicalErrors());
+            if (providerVersionMatches) {
+                for (LiveCandidate candidate : liveReport.getCandidates()) {
+                    try {
+                        GeneratedSetup setup = provider.verifyLiveExact(request, candidate);
+                        if (isExactVerified(setup, request)) {
+                            return GenerationOutcome.success(GenerationOutcome.State.LIVE_EXACT_FOUND,
+                                    "LIVE EXACT GEFUNDEN", "LIVE EXACT – vollständig binär geprüft", setup);
+                        }
+                    } catch (Exception ignored) {
+                        // An invalid round-one candidate does not suppress the second complete round.
                     }
-                } catch (Exception ignored) {
-                    // A malformed hit is rejected; the engineering path remains available.
                 }
             }
         }
+        String liveState = !liveErrors.isEmpty()
+                ? "LIVE-QUELLE TECHNISCH NICHT ERREICHBAR"
+                : "KEIN EXAKTER LIVE-TREFFER";
 
-        if (provider == null || !provider.supports(request)
-                || !request.getGameVersion().equals(provider.supportedGameVersion())) {
+        if (!providerVersionMatches || !provider.supports(request)) {
             return GenerationOutcome.blocked(liveState,
                     "NICHT SICHER – Für diese exakte Fahrzeug-/Layout-/Versionskombination "
                     + "ist kein verifizierter Writer mit Engineering-Profil geladen. Es wurde "
@@ -75,9 +81,27 @@ public final class SetupGenerationService {
         return Collections.unmodifiableList(results);
     }
 
-    private static boolean isExactVerified(GeneratedSetup setup, SetupRequest request) {
-        return setup != null && setup.isExportable()
-                && setup.getRequest().exactKey().equals(request.exactKey())
-                && setup.getRequest().getStyle() == request.getStyle();
+    private boolean isExactVerified(GeneratedSetup setup, SetupRequest request) throws Exception {
+        if (setup == null || !setup.isExportable() || setup.getValues().isEmpty()
+                || !setup.getRequest().requestKey().equals(request.requestKey())) return false;
+        VerifiedBinaryInspector inspector = provider.binaryInspector();
+        if (inspector == null) return false;
+        BinaryInspection inspection = inspector.inspect(request, setup.getBinary());
+        return inspection != null && inspection.verifies(setup.getBinary())
+                && sameValues(setup.getValues(), inspection.getDecodedValues());
+    }
+
+    private static boolean sameValues(List<SetupValue> expected, List<SetupValue> decoded) {
+        if (expected.size() != decoded.size()) return false;
+        for (int index = 0; index < expected.size(); index++) {
+            SetupValue left = expected.get(index);
+            SetupValue right = decoded.get(index);
+            if (left.getSection() != right.getSection()
+                    || left.getPosition() != right.getPosition()
+                    || !left.getKey().equals(right.getKey())
+                    || !left.getFormattedValue().equals(right.getFormattedValue())
+                    || left.isAdjustable() != right.isAdjustable()) return false;
+        }
+        return true;
     }
 }

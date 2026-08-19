@@ -13,6 +13,7 @@ public final class VerificationReport {
     private final boolean steps;
     private final boolean tractionControlRule;
     private final boolean unknownFieldsPreserved;
+    private final boolean gameLoadAcceptanceEvidence;
     private final String sha256;
     private final String details;
 
@@ -20,6 +21,7 @@ public final class VerificationReport {
             boolean gameVersion, boolean binaryStructure, boolean vehicleSignature,
             boolean fieldsRoundTrip, boolean ranges, boolean steps,
             boolean tractionControlRule, boolean unknownFieldsPreserved,
+            boolean gameLoadAcceptanceEvidence,
             String sha256, String details) {
         this.vehicleIdentity = vehicleIdentity;
         this.layoutIdentity = layoutIdentity;
@@ -31,6 +33,7 @@ public final class VerificationReport {
         this.steps = steps;
         this.tractionControlRule = tractionControlRule;
         this.unknownFieldsPreserved = unknownFieldsPreserved;
+        this.gameLoadAcceptanceEvidence = gameLoadAcceptanceEvidence;
         this.sha256 = Objects.requireNonNull(sha256, "sha256");
         this.details = Objects.requireNonNull(details, "details");
     }
@@ -39,6 +42,7 @@ public final class VerificationReport {
         return vehicleIdentity && layoutIdentity && gameVersion && binaryStructure
                 && vehicleSignature && fieldsRoundTrip && ranges && steps
                 && tractionControlRule && unknownFieldsPreserved
+                && gameLoadAcceptanceEvidence
                 && sha256.matches("[0-9a-f]{64}");
     }
 
@@ -52,6 +56,7 @@ public final class VerificationReport {
     public boolean areStepsValid() { return steps; }
     public boolean isTractionControlRuleValid() { return tractionControlRule; }
     public boolean areUnknownFieldsPreserved() { return unknownFieldsPreserved; }
+    public boolean hasGameLoadAcceptanceEvidence() { return gameLoadAcceptanceEvidence; }
     public String getSha256() { return sha256; }
     public String getDetails() { return details; }
 }

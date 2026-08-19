@@ -31,8 +31,11 @@ import com.greenbuddy.acevosetupengineer.model.SetupValue;
 import com.greenbuddy.acevosetupengineer.model.TrackLayout;
 import com.greenbuddy.acevosetupengineer.model.VerificationReport;
 import com.greenbuddy.acevosetupengineer.ui.DarkSpinnerAdapter;
+import com.greenbuddy.acevosetupengineer.verification.BinaryDigest;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +57,7 @@ public final class MainActivity extends Activity {
     private Button fineTuningToggle;
     private Button generateButton;
     private Button generateAllButton;
+    private Button liveRefreshButton;
     private Button saveButton;
     private TextView resultText;
     private TextView saveNote;
@@ -86,7 +90,7 @@ public final class MainActivity extends Activity {
         generateButton.setOnClickListener(view -> generate(false));
         generateAllButton.setOnClickListener(view -> generate(true));
         saveButton.setOnClickListener(view -> chooseExportDestination());
-        findViewById(R.id.liveRefreshButton).setOnClickListener(view -> refreshLiveIndex());
+        liveRefreshButton.setOnClickListener(view -> refreshLiveIndex());
         resultSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view,
                                                  int position, long id) {
@@ -113,6 +117,7 @@ public final class MainActivity extends Activity {
         fineTuningToggle = findViewById(R.id.fineTuningToggle);
         generateButton = findViewById(R.id.generateButton);
         generateAllButton = findViewById(R.id.generateAllButton);
+        liveRefreshButton = findViewById(R.id.liveRefreshButton);
         saveButton = findViewById(R.id.saveButton);
         resultText = findViewById(R.id.resultText);
         saveNote = findViewById(R.id.saveNote);
@@ -240,13 +245,35 @@ public final class MainActivity extends Activity {
                 || selectedExport == null || !selectedExport.isExportable()) return;
         Uri destination = data.getData();
         if (destination == null) return;
-        try (OutputStream output = getContentResolver().openOutputStream(destination, "wt")) {
-            if (output == null) throw new IOException("No output stream");
-            output.write(selectedExport.getBinary());
-            output.flush();
+        GeneratedSetup export = selectedExport;
+        byte[] expected = export.getBinary();
+        try {
+            try (OutputStream output = getContentResolver().openOutputStream(destination, "wt")) {
+                if (output == null) throw new IOException("No output stream");
+                output.write(expected);
+                output.flush();
+            }
+            if (!destinationMatches(destination, expected)
+                    || !BinaryDigest.sha256(expected).equals(export.getVerification().getSha256())) {
+                throw new IOException("Saved binary verification mismatch");
+            }
             Toast.makeText(this, R.string.binary_saved, Toast.LENGTH_LONG).show();
-        } catch (IOException error) {
+        } catch (IOException | SecurityException error) {
             Toast.makeText(this, R.string.save_failed, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private boolean destinationMatches(Uri destination, byte[] expected) throws IOException {
+        try (InputStream input = getContentResolver().openInputStream(destination);
+             ByteArrayOutputStream copy = new ByteArrayOutputStream(expected.length)) {
+            if (input == null) return false;
+            byte[] buffer = new byte[4096];
+            int read;
+            while ((read = input.read(buffer)) != -1) {
+                if (copy.size() + read > expected.length) return false;
+                copy.write(buffer, 0, read);
+            }
+            return Arrays.equals(expected, copy.toByteArray());
         }
     }
 
@@ -255,6 +282,15 @@ public final class MainActivity extends Activity {
         generateAllButton.setEnabled(!busy);
         vehicleSpinner.setEnabled(!busy);
         layoutSpinner.setEnabled(!busy);
+        problemSpinner.setEnabled(!busy);
+        strengthSpinner.setEnabled(!busy);
+        fineTuningToggle.setEnabled(!busy);
+        liveRefreshButton.setEnabled(!busy);
+        resultSpinner.setEnabled(!busy);
+        for (int index = 0; index < styleGroup.getChildCount(); index++) {
+            styleGroup.getChildAt(index).setEnabled(!busy);
+        }
+        saveButton.setEnabled(!busy && selectedExport != null && selectedExport.isExportable());
     }
 
     @Override protected void onDestroy() {

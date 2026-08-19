@@ -1,5 +1,7 @@
 package com.greenbuddy.acevosetupengineer.model;
 
+import com.greenbuddy.acevosetupengineer.verification.BinaryDigest;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,12 +20,15 @@ public final class GeneratedSetup {
                           ResultLabel origin) {
         this.request = Objects.requireNonNull(request, "request");
         this.binary = Objects.requireNonNull(binary, "binary").clone();
-        if (binary.length == 0) throw new IllegalArgumentException("binary is empty");
+        if (this.binary.length == 0) throw new IllegalArgumentException("binary is empty");
         List<SetupValue> sorted = new ArrayList<>(Objects.requireNonNull(values, "values"));
         Collections.sort(sorted);
         this.values = Collections.unmodifiableList(sorted);
         this.changes = Collections.unmodifiableList(new ArrayList<>(Objects.requireNonNull(changes, "changes")));
         this.verification = Objects.requireNonNull(verification, "verification");
+        if (!BinaryDigest.sha256(this.binary).equals(verification.getSha256())) {
+            throw new IllegalArgumentException("verification SHA-256 does not match binary");
+        }
         this.origin = Objects.requireNonNull(origin, "origin");
     }
 

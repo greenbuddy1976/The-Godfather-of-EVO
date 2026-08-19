@@ -18,7 +18,8 @@ the complete interaction flow but report `NICHT SICHER` instead of manufacturing
 file when verified vehicle data or a writer is missing.
 
 The private verified writer is loaded through the `VerifiedWriterProvider` contract.
-It must cover every supported car and layout for game version 0.8.1, perform a complete
+It must also expose a separate `VerifiedBinaryInspector` decoder/test oracle, cover
+every supported car and layout for game version 0.8.1, perform a complete
 decode/encode roundtrip, and report every individual verification flag. See
 `docs/PRIVATE_WRITER_CONTRACT.md`.
 
@@ -40,5 +41,6 @@ workflow. This is a safety property, not a missing fallback.
   carry provenance in source.
 - The JVM safety matrix validates that the public tree refuses all 71 × 35 × 5 =
   12,425 requests instead of inventing binaries.
-- The release instrumentation matrix validates real binaries from the protected writer.
+- The release instrumentation matrix independently re-decodes protected-writer output.
+  This is an automated binary-contract check, not a claimed in-game driving test.
 - Automated verification is never described as a real driving test.
