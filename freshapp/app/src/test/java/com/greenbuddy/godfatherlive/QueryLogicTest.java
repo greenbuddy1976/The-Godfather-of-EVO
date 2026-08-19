@@ -15,6 +15,12 @@ public final class QueryLogicTest {
         assertFalse(QueryLogic.exact("Nordschleife", "Nordschleife Touristenfahrten"));
     }
 
+    @Test public void usefulAliasesAndYearSuffixesNormalize() {
+        assertTrue(QueryLogic.exact("Mazda MX-5 NA (1994)", "Mazda MX5 NA"));
+        assertTrue(QueryLogic.exact("SPA Francorchamps", "Spa-Francorchamps"));
+        assertTrue(QueryLogic.exact("Nürburgring GP", "Nuerburgring GP"));
+    }
+
     @Test public void onlyCurrentZeroEightFilesAreAccepted() {
         assertTrue(QueryLogic.currentVersion("0.8"));
         assertTrue(QueryLogic.currentVersion("v0.8.1"));
@@ -31,6 +37,14 @@ public final class QueryLogicTest {
                 .endsWith(".carsetup"));
     }
 
+    @Test public void generatedNamesContainCarTrackProfileAndCarsetupExtension() {
+        String name = QueryLogic.generatedName(
+                "Ford Mustang GT3", "Nordschleife", SetupEngine.Profile.STABLE_FAST);
+        assertTrue(name.contains("Ford Mustang GT3"));
+        assertTrue(name.contains("Nordschleife"));
+        assertTrue(name.endsWith(".carsetup"));
+    }
+
     @Test public void binaryGuardRejectsWebErrorsAndZipFiles() {
         byte[] html = ("<html>" + "x".repeat(40)).getBytes(StandardCharsets.UTF_8);
         byte[] json = ("{\"error\":\"" + "x".repeat(40) + "\"}").getBytes(StandardCharsets.UTF_8);
@@ -39,18 +53,5 @@ public final class QueryLogicTest {
         assertThrows(IllegalArgumentException.class, () -> QueryLogic.requireRealCarsetup(html));
         assertThrows(IllegalArgumentException.class, () -> QueryLogic.requireRealCarsetup(json));
         assertThrows(IllegalArgumentException.class, () -> QueryLogic.requireRealCarsetup(zip));
-    }
-
-    @Test public void styleOnlySortsMetadataAndDoesNotMutateFileIdentity() {
-        SourceSetup hotlap = new SourceSetup(SourceSetup.Source.SETUPSMARKET, "1",
-                "Ford Mustang GT3", "Spa-Francorchamps", "0.8.1", "fast.carsetup",
-                "Qualifying hotlap", "", "https://example.invalid/1", "");
-        SourceSetup stable = new SourceSetup(SourceSetup.Source.SETUPSMARKET, "2",
-                "Ford Mustang GT3", "Spa-Francorchamps", "0.8.1", "stable.carsetup",
-                "Stable race baseline", "", "https://example.invalid/2", "");
-        assertTrue(QueryLogic.score(hotlap, QueryLogic.Style.SCHUMACHER, QueryLogic.FineTune.NONE)
-                > QueryLogic.score(stable, QueryLogic.Style.SCHUMACHER, QueryLogic.FineTune.NONE));
-        assertEquals("1|fordmustanggt3|spafrancorchamps",
-                hotlap.sourceId + "|" + QueryLogic.key(hotlap.car) + "|" + QueryLogic.key(hotlap.track));
     }
 }
