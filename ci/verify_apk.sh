@@ -4,6 +4,7 @@ set -euo pipefail
 apk="${1:?APK path required}"
 report="${2:-verification-reports/apksigner.txt}"
 mkdir -p "$(dirname "$report")"
+zipalign -c -P 16 4 "$apk" | tee verification-reports/zipalign.txt
 apksigner verify --verbose --print-certs "$apk" | tee "$report"
 grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true' "$report"
 grep -q 'Verified using v3 scheme (APK Signature Scheme v3): true' "$report"

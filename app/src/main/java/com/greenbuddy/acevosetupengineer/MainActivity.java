@@ -145,16 +145,23 @@ public final class MainActivity extends Activity {
         resultText.setText(R.string.live_check_running);
         SetupRequest request = currentRequest();
         background.execute(() -> {
-            List<GenerationOutcome> generated = allFive
-                    ? generationService.generateAllFive(request)
-                    : Collections.singletonList(generationService.generate(request));
+            final List<GenerationOutcome> generated;
+            try {
+                generated = allFive
+                        ? generationService.generateAllFive(request)
+                        : Collections.singletonList(generationService.generate(request));
+            } catch (RuntimeException error) {
+                generated = blockedOutcomes(allFive);
+            }
             runOnUiThread(() -> {
                 outcomes.clear();
                 outcomes.addAll(generated);
                 if (generated.size() > 1) {
                     List<String> labels = new ArrayList<>();
-                    for (GenerationOutcome outcome : generated) {
-                        String style = outcome.getSetup() == null ? "Setup"
+                    for (int index = 0; index < generated.size(); index++) {
+                        GenerationOutcome outcome = generated.get(index);
+                        String style = outcome.getSetup() == null
+                                ? SetupStyle.values()[index].getDisplayName()
                                 : outcome.getSetup().getRequest().getStyle().getDisplayName();
                         labels.add(style + " – " + (outcome.isExportable() ? "VERIFIZIERT" : "NICHT SICHER"));
                     }
@@ -165,6 +172,18 @@ public final class MainActivity extends Activity {
                 setBusy(false);
             });
         });
+    }
+
+    private static List<GenerationOutcome> blockedOutcomes(boolean allFive) {
+        int count = allFive ? SetupStyle.values().length : 1;
+        List<GenerationOutcome> blocked = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) {
+            blocked.add(GenerationOutcome.blocked(
+                    "LIVE-QUELLE TECHNISCH NICHT ERREICHBAR",
+                    "NICHT SICHER – Die Berechnung wurde nach einem technischen Fehler beendet. "
+                            + "Es wurde keine Datei erzeugt."));
+        }
+        return blocked;
     }
 
     private SetupRequest currentRequest() {
