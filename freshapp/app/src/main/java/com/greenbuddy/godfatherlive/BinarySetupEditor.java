@@ -35,13 +35,16 @@ final class BinarySetupEditor {
         final int offset;
         final float f32;
         final List<Node> children;
+        final List<FlatValue> packed;
 
-        Node(int field, int wireType, int offset, float f32, List<Node> children) {
+        Node(int field, int wireType, int offset, float f32,
+             List<Node> children, List<FlatValue> packed) {
             this.field = field;
             this.wireType = wireType;
             this.offset = offset;
             this.f32 = f32;
             this.children = children;
+            this.packed = packed;
         }
     }
 
@@ -67,7 +70,7 @@ final class BinarySetupEditor {
 
         for (SetupEngine.Change change : changes) {
             if (!isKnownWritable(change.path)) {
-                skipped.add(change.path);
+                if (!skipped.contains(change.path)) skipped.add(change.path);
                 continue;
             }
             FlatValue field = fields.get(change.path);
@@ -124,11 +127,11 @@ final class BinarySetupEditor {
     }
 
     private static float clamp(String path, float before, float value) {
-        if (path.matches("4\\[[0-3]]\\.1")) return between(value, 15f, 40f); // psi
-        if (path.matches("4\\[[0-3]]\\.2")) return between(value, -8f, 2f); // camber
-        if (path.matches("4\\[[0-3]]\\.3")) return between(value, -2f, 2f); // toe
-        if (path.matches("4\\[[0-3]]\\.4")) return between(value, 0f, 20f); // caster
-        if (path.equals("1.3.1")) return between(value, 45f, 80f); // brake bias
+        if (path.matches("4\\[[0-3]]\\.1")) return between(value, 15f, 40f);
+        if (path.matches("4\\[[0-3]]\\.2")) return between(value, -8f, 2f);
+        if (path.matches("4\\[[0-3]]\\.3")) return between(value, -2f, 2f);
+        if (path.matches("4\\[[0-3]]\\.4")) return between(value, 0f, 20f);
+        if (path.equals("1.3.1")) return between(value, 45f, 80f);
         if (path.equals("1.4.3")) return between(value, 0f, Math.max(500f, before * 2f + 100f));
         if (path.equals("5.1") || path.equals("5.2") || path.equals("5.3")) return between(value, 0f, 20f);
         if (path.equals("6.2") || path.equals("6.3")) return between(value, 0f, 250f);
@@ -164,18 +167,18 @@ final class BinarySetupEditor {
                 Varint value = readVarint(bytes, pos, end);
                 if (value == null) return null;
                 pos = value.next;
-                out.add(new Node(field, wire, -1, Float.NaN, null));
+                out.add(new Node(field, wire, -1, Float.NaN, null, null));
             } else if (wire == 5) {
                 if (pos + 4 > end) return null;
                 float value = reader.getFloat(pos);
                 if (!Float.isFinite(value) || Math.abs(value) > 100_000_000f) return null;
-                out.add(new Node(field, wire, pos, value, null));
+                out.add(new Node(field, wire, pos, value, null, null));
                 pos += 4;
             } else if (wire == 1) {
                 if (pos + 8 > end) return null;
                 double value = reader.getDouble(pos);
                 if (!Double.isFinite(value) || Math.abs(value) > 1e16) return null;
-                out.add(new Node(field, wire, -1, Float.NaN, null));
+                out.add(new Node(field, wire, -1, Float.NaN, null, null));
                 pos += 8;
             } else if (wire == 2) {
                 Varint len = readVarint(bytes, pos, end);
@@ -183,12 +186,20 @@ final class BinarySetupEditor {
                 pos = len.next;
                 int n = (int) len.value;
                 if (pos + n > end) return null;
+
                 List<Node> child = n == 0 ? new ArrayList<>() : parseMessage(bytes, pos, n, depth + 1);
-                if (child != null && !child.isEmpty() && !containsWireType(child, 1)) {
-                    out.add(new Node(field, wire, -1, Float.NaN, child));
+                boolean childBad = child == null || child.isEmpty() || containsWireType(child, 1);
+                List<FlatValue> packed = null;
+                if (childBad && n > 0 && n % 4 == 0) {
+                    packed = parsePackedFloats(bytes, pos, n, reader);
+                }
+
+                if (packed != null && !packed.isEmpty()) {
+                    out.add(new Node(field, wire, -1, Float.NaN, null, packed));
+                } else if (child != null && !child.isEmpty() && !containsWireType(child, 1)) {
+                    out.add(new Node(field, wire, -1, Float.NaN, child, null));
                 } else {
-                    // Length-delimited text/bytes/packed data is deliberately preserved but not edited.
-                    out.add(new Node(field, wire, -1, Float.NaN, null));
+                    out.add(new Node(field, wire, -1, Float.NaN, null, null));
                 }
                 pos += n;
             } else {
@@ -196,6 +207,17 @@ final class BinarySetupEditor {
             }
         }
         return pos == end ? out : null;
+    }
+
+    private static List<FlatValue> parsePackedFloats(byte[] bytes, int start, int length, ByteBuffer reader) {
+        List<FlatValue> values = new ArrayList<>();
+        for (int i = 0; i < length; i += 4) {
+            int off = start + i;
+            float value = reader.getFloat(off);
+            if (!Float.isFinite(value) || Math.abs(value) > 100_000_000f) return null;
+            values.add(new FlatValue(off, value));
+        }
+        return values;
     }
 
     private static boolean containsWireType(List<Node> nodes, int wireType) {
@@ -219,6 +241,8 @@ final class BinarySetupEditor {
                     : prefix + "." + n.field + suffix;
             if (n.children != null) {
                 flatten(n.children, path, out);
+            } else if (n.packed != null) {
+                for (int i = 0; i < n.packed.size(); i++) out.put(path + "[" + i + "]", n.packed.get(i));
             } else if (n.wireType == 5 && n.offset >= 0) {
                 out.put(path, new FlatValue(n.offset, n.f32));
             }
