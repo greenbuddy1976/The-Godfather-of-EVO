@@ -18,6 +18,7 @@ import com.greenbuddy.acevosetupengineer.engine.ProviderLoader;
 import com.greenbuddy.acevosetupengineer.engine.SetupGenerationService;
 import com.greenbuddy.acevosetupengineer.engine.VerifiedWriterProvider;
 import com.greenbuddy.acevosetupengineer.live.LiveIndexController;
+import com.greenbuddy.acevosetupengineer.live.LiveSetupSource;
 import com.greenbuddy.acevosetupengineer.model.CarIdentity;
 import com.greenbuddy.acevosetupengineer.model.FineTuningProblem;
 import com.greenbuddy.acevosetupengineer.model.FineTuningStrength;
@@ -32,6 +33,7 @@ import com.greenbuddy.acevosetupengineer.model.TrackLayout;
 import com.greenbuddy.acevosetupengineer.model.VerificationReport;
 import com.greenbuddy.acevosetupengineer.ui.DarkSpinnerAdapter;
 import com.greenbuddy.acevosetupengineer.verification.BinaryDigest;
+import com.greenbuddy.acevosetupengineer.verification.VerifiedBinaryInspector;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -75,9 +77,10 @@ public final class MainActivity extends Activity {
         bindViews();
 
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
-        generationService = new SetupGenerationService(provider);
-        liveIndexController = new LiveIndexController(this,
-                provider == null ? Collections.emptyList() : provider.liveSources());
+        VerifiedBinaryInspector inspector = ProviderLoader.loadInspector(
+                BuildConfig.VERIFIED_BINARY_INSPECTOR_CLASS);
+        generationService = new SetupGenerationService(provider, inspector);
+        liveIndexController = new LiveIndexController(this, safeLiveSources(provider));
 
         vehicleSpinner.setAdapter(new DarkSpinnerAdapter<>(this, OfficialInventory.cars()));
         layoutSpinner.setAdapter(new DarkSpinnerAdapter<>(this, OfficialInventory.layouts()));
@@ -145,14 +148,7 @@ public final class MainActivity extends Activity {
         resultText.setText(R.string.live_check_running);
         SetupRequest request = currentRequest();
         background.execute(() -> {
-            final List<GenerationOutcome> generated;
-            try {
-                generated = allFive
-                        ? generationService.generateAllFive(request)
-                        : Collections.singletonList(generationService.generate(request));
-            } catch (RuntimeException error) {
-                generated = blockedOutcomes(allFive);
-            }
+            List<GenerationOutcome> generated = generateSafely(request, allFive);
             runOnUiThread(() -> {
                 outcomes.clear();
                 outcomes.addAll(generated);
@@ -174,6 +170,16 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private List<GenerationOutcome> generateSafely(SetupRequest request, boolean allFive) {
+        try {
+            return allFive
+                    ? generationService.generateAllFive(request)
+                    : Collections.singletonList(generationService.generate(request));
+        } catch (RuntimeException error) {
+            return blockedOutcomes(allFive);
+        }
+    }
+
     private static List<GenerationOutcome> blockedOutcomes(boolean allFive) {
         int count = allFive ? SetupStyle.values().length : 1;
         List<GenerationOutcome> blocked = new ArrayList<>(count);
@@ -184,6 +190,16 @@ public final class MainActivity extends Activity {
                             + "Es wurde keine Datei erzeugt."));
         }
         return blocked;
+    }
+
+    private static List<LiveSetupSource> safeLiveSources(VerifiedWriterProvider provider) {
+        if (provider == null) return Collections.emptyList();
+        try {
+            List<LiveSetupSource> sources = provider.liveSources();
+            return sources == null ? Collections.emptyList() : sources;
+        } catch (RuntimeException error) {
+            return Collections.emptyList();
+        }
     }
 
     private SetupRequest currentRequest() {

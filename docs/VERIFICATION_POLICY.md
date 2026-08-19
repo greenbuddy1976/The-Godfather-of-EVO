@@ -14,9 +14,9 @@ A result is exportable only if all of the following are true:
 10. SHA-256 is calculated from the final bytes.
 
 The core computes SHA-256 itself and compares generated values with a fresh decode from
-the protected `VerifiedBinaryInspector`. This remains an automated structural check;
-actual AC EVO acceptance still requires a separately recorded game-load test before
-release.
+a separately pinned protected `VerifiedBinaryInspector` artifact. This remains an
+automated structural check; actual AC EVO acceptance and independent provenance still
+require separately recorded evidence before release.
 
 `LIVE EXACT` is not a quality claim. A community file must still pass all checks.
 Network failure is recorded separately from an exact miss. After at most two complete

@@ -30,8 +30,13 @@ public final class VerifiedReleaseMatrixTest {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull("Protected verified provider is mandatory", provider);
         assertEquals(OfficialInventory.GAME_VERSION, provider.supportedGameVersion());
-        VerifiedBinaryInspector inspector = provider.binaryInspector();
+        VerifiedBinaryInspector inspector = inspector();
         assertNotNull("Independent binary inspector is mandatory", inspector);
+        assertEquals(OfficialInventory.GAME_VERSION, inspector.supportedGameVersion());
+        assertNotNull(provider.providerId());
+        assertNotNull(inspector.inspectorId());
+        assertFalse("Writer and inspector identities must be independent",
+                provider.providerId().equals(inspector.inspectorId()));
         int count = 0;
         for (CarIdentity car : OfficialInventory.cars()) {
             for (TrackLayout layout : OfficialInventory.layouts()) {
@@ -61,7 +66,7 @@ public final class VerifiedReleaseMatrixTest {
     public void testEveryFineTuningProblemAndStrengthActuallyChangesValues() throws Exception {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull(provider);
-        VerifiedBinaryInspector inspector = provider.binaryInspector();
+        VerifiedBinaryInspector inspector = inspector();
         assertNotNull(inspector);
         CarIdentity car = OfficialInventory.requireCar("bmw_m2_coupe_g87");
         TrackLayout layout = OfficialInventory.layouts().get(0);
@@ -93,7 +98,7 @@ public final class VerifiedReleaseMatrixTest {
     public void testMustangFastAttackTcOneOnAllLayouts() throws Exception {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull(provider);
-        VerifiedBinaryInspector inspector = provider.binaryInspector();
+        VerifiedBinaryInspector inspector = inspector();
         assertNotNull(inspector);
         CarIdentity mustang = OfficialInventory.requireCar("ford_mustang_gt3");
         for (TrackLayout layout : OfficialInventory.layouts()) {
@@ -115,7 +120,7 @@ public final class VerifiedReleaseMatrixTest {
     public void testExplicitRequiredBmwAndMustangIdentities() throws Exception {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull(provider);
-        VerifiedBinaryInspector inspector = provider.binaryInspector();
+        VerifiedBinaryInspector inspector = inspector();
         assertNotNull(inspector);
         String[] ids = {"bmw_m2_coupe_g87", "bmw_m2_cs_racing", "bmw_m3_e30_sport_evo",
                 "bmw_m3_e46_csl", "ford_mustang_gt3"};
@@ -150,7 +155,7 @@ public final class VerifiedReleaseMatrixTest {
     public void testAdjustableMustangRearWingParticipatesInHighSpeedFineTuning() throws Exception {
         VerifiedWriterProvider provider = ProviderLoader.load(BuildConfig.VERIFIED_WRITER_PROVIDER_CLASS);
         assertNotNull(provider);
-        VerifiedBinaryInspector inspector = provider.binaryInspector();
+        VerifiedBinaryInspector inspector = inspector();
         assertNotNull(inspector);
         CarIdentity mustang = OfficialInventory.requireCar("ford_mustang_gt3");
         TrackLayout layout = OfficialInventory.layouts().get(0);
@@ -208,5 +213,9 @@ public final class VerifiedReleaseMatrixTest {
     private static SetupRequest request(CarIdentity car, TrackLayout layout, SetupStyle style,
                                         FineTuningProblem problem, FineTuningStrength strength) {
         return new SetupRequest(car, layout, style, problem, strength, OfficialInventory.GAME_VERSION);
+    }
+
+    private static VerifiedBinaryInspector inspector() {
+        return ProviderLoader.loadInspector(BuildConfig.VERIFIED_BINARY_INSPECTOR_CLASS);
     }
 }

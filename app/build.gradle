@@ -4,6 +4,7 @@ plugins {
 
 def env = System.getenv()
 def providerClass = (env['VERIFIED_WRITER_PROVIDER_CLASS'] ?: '').replace('"', '')
+def inspectorClass = (env['VERIFIED_BINARY_INSPECTOR_CLASS'] ?: '').replace('"', '')
 def signingReady = ['RELEASE_KEYSTORE_PATH', 'RELEASE_STORE_PASSWORD',
                     'RELEASE_KEY_PASSWORD'].every { env[it] }
 
@@ -21,6 +22,7 @@ android {
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         buildConfigField 'String', 'SUPPORTED_GAME_VERSION', '"0.8.1"'
         buildConfigField 'String', 'VERIFIED_WRITER_PROVIDER_CLASS', "\"${providerClass}\""
+        buildConfigField 'String', 'VERIFIED_BINARY_INSPECTOR_CLASS', "\"${inspectorClass}\""
     }
 
     buildFeatures {
@@ -98,7 +100,10 @@ def verifyReleaseInputs = tasks.register('verifyReleaseInputs') {
     doLast {
         def missing = []
         if (!file('libs/verified-writers.aar').isFile()) missing << 'app/libs/verified-writers.aar'
+        if (!file('libs/verified-inspector.aar').isFile()) missing << 'app/libs/verified-inspector.aar'
         if (!providerClass) missing << 'VERIFIED_WRITER_PROVIDER_CLASS'
+        if (!inspectorClass) missing << 'VERIFIED_BINARY_INSPECTOR_CLASS'
+        if (providerClass && providerClass == inspectorClass) missing << 'independent writer/inspector classes'
         if (!signingReady) missing << 'release signing environment variables'
         if ((env['RELEASE_KEY_ALIAS'] ?: 'acevosetup') != 'acevosetup') missing << 'required alias acevosetup'
         if (missing) {

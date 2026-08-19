@@ -3,6 +3,7 @@ package com.greenbuddy.acevosetupengineer.engine;
 import com.greenbuddy.acevosetupengineer.live.LiveCandidate;
 import com.greenbuddy.acevosetupengineer.live.LiveLookupCoordinator;
 import com.greenbuddy.acevosetupengineer.live.LiveLookupReport;
+import com.greenbuddy.acevosetupengineer.live.LiveSetupSource;
 import com.greenbuddy.acevosetupengineer.model.GeneratedSetup;
 import com.greenbuddy.acevosetupengineer.model.GenerationOutcome;
 import com.greenbuddy.acevosetupengineer.model.SetupRequest;
@@ -17,17 +18,25 @@ import java.util.List;
 
 public final class SetupGenerationService {
     private final VerifiedWriterProvider provider;
+    private final VerifiedBinaryInspector inspector;
     private final LiveLookupCoordinator live;
 
     public SetupGenerationService(VerifiedWriterProvider provider) {
+        this(provider, null);
+    }
+
+    public SetupGenerationService(VerifiedWriterProvider provider,
+                                  VerifiedBinaryInspector inspector) {
         this.provider = provider;
-        this.live = new LiveLookupCoordinator(provider == null
-                ? Collections.emptyList() : provider.liveSources());
+        this.inspector = inspector;
+        this.live = new LiveLookupCoordinator(safeLiveSources(provider));
     }
 
     public GenerationOutcome generate(SetupRequest request) {
         boolean providerVersionMatches = provider != null
-                && request.getGameVersion().equals(provider.supportedGameVersion());
+                && inspector != null
+                && request.getGameVersion().equals(provider.supportedGameVersion())
+                && request.getGameVersion().equals(inspector.supportedGameVersion());
         List<String> liveErrors = new ArrayList<>();
         for (int round = 0; round < LiveLookupCoordinator.MAX_COMPLETE_ROUNDS; round++) {
             LiveLookupReport liveReport = live.findExactRound(request);
@@ -84,8 +93,6 @@ public final class SetupGenerationService {
     private boolean isExactVerified(GeneratedSetup setup, SetupRequest request) throws Exception {
         if (setup == null || !setup.isExportable() || setup.getValues().isEmpty()
                 || !setup.getRequest().requestKey().equals(request.requestKey())) return false;
-        VerifiedBinaryInspector inspector = provider.binaryInspector();
-        if (inspector == null) return false;
         BinaryInspection inspection = inspector.inspect(request, setup.getBinary());
         return inspection != null && inspection.verifies(setup.getBinary())
                 && sameValues(setup.getValues(), inspection.getDecodedValues());
@@ -103,5 +110,15 @@ public final class SetupGenerationService {
                     || left.isAdjustable() != right.isAdjustable()) return false;
         }
         return true;
+    }
+
+    private static List<LiveSetupSource> safeLiveSources(VerifiedWriterProvider provider) {
+        if (provider == null) return Collections.emptyList();
+        try {
+            List<LiveSetupSource> sources = provider.liveSources();
+            return sources == null ? Collections.emptyList() : sources;
+        } catch (RuntimeException error) {
+            return Collections.emptyList();
+        }
     }
 }
