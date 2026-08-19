@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="20dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="28dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textColor="@color/yellow"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/subtitle"
+            android:textColor="@color/light_grey"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/liveStatus"
+            style="@style/SecondaryText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/card_background"
+            android:text="@string/live_initial" />
+
+        <Button
+            android:id="@+id/liveRefreshButton"
+            style="@style/YellowButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/live_refresh" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/vehicle" />
+
+            <Spinner
+                android:id="@+id/vehicleSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:backgroundTint="@color/yellow"
+                android:contentDescription="@string/vehicle"
+                android:popupBackground="@color/card"
+                android:spinnerMode="dropdown" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/layout" />
+
+            <Spinner
+                android:id="@+id/layoutSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:backgroundTint="@color/yellow"
+                android:contentDescription="@string/layout"
+                android:popupBackground="@color/card"
+                android:spinnerMode="dropdown" />
+
+            <Button
+                android:id="@+id/importMustangButton"
+                style="@style/YellowButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/beta_import"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/importMustangStatus"
+                style="@style/SecondaryText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/beta_import_missing"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/style" />
+
+            <RadioGroup
+                android:id="@+id/styleGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checkedButton="@id/styleControl"
+                android:orientation="vertical">
+
+                <RadioButton
+                    android:id="@+id/styleControl"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/yellow"
+                    android:minHeight="52dp"
+                    android:text="@string/style_control"
+                    android:textColor="@color/white" />
+
+                <RadioButton
+                    android:id="@+id/styleAttack"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/yellow"
+                    android:minHeight="52dp"
+                    android:text="@string/style_attack"
+                    android:textColor="@color/white" />
+
+                <RadioButton
+                    android:id="@+id/styleStable"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/yellow"
+                    android:minHeight="52dp"
+                    android:text="@string/style_stable"
+                    android:textColor="@color/white" />
+
+                <RadioButton
+                    android:id="@+id/styleSafe"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/yellow"
+                    android:minHeight="52dp"
+                    android:text="@string/style_safe"
+                    android:textColor="@color/white" />
+
+                <RadioButton
+                    android:id="@+id/styleLongRun"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@color/yellow"
+                    android:minHeight="52dp"
+                    android:text="@string/style_long_run"
+                    android:textColor="@color/white" />
+            </RadioGroup>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/fine_tuning" />
+
+            <Button
+                android:id="@+id/fineTuningToggle"
+                style="@style/YellowButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/fine_tuning_open" />
+
+            <LinearLayout
+                android:id="@+id/fineTuningPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/SecondaryText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/fine_tuning_problem" />
+
+                <Spinner
+                    android:id="@+id/problemSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:backgroundTint="@color/yellow"
+                    android:contentDescription="@string/fine_tuning_problem"
+                    android:popupBackground="@color/card" />
+
+                <TextView
+                    style="@style/SecondaryText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/fine_tuning_strength" />
+
+                <Spinner
+                    android:id="@+id/strengthSpinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:backgroundTint="@color/yellow"
+                    android:contentDescription="@string/fine_tuning_strength"
+                    android:popupBackground="@color/card" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/generateButton"
+            style="@style/YellowButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/generate" />
+
+        <Button
+            android:id="@+id/generateAllButton"
+            style="@style/YellowButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/generate_all" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@drawable/card_background"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/SectionTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/result" />
+
+            <Spinner
+                android:id="@+id/resultSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:backgroundTint="@color/yellow"
+                android:contentDescription="@string/result"
+                android:popupBackground="@color/card"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/resultText"
+                style="@style/SecondaryText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/result_empty" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/saveButton"
+            style="@style/YellowButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:enabled="false"
+            android:text="@string/save" />
+
+        <TextView
+            android:id="@+id/saveNote"
+            style="@style/SecondaryText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/save_disabled" />
+
+        <TextView
+            style="@style/SecondaryText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:gravity="center"
+            android:text="@string/copyright" />
+    </LinearLayout>
+</ScrollView>

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">The Godfather of EVO</string>
+    <string name="subtitle">Assetto Corsa EVO Setup Engineer</string>
+    <string name="vehicle">1. Fahrzeug auswählen</string>
+    <string name="layout">2. Exakte Strecke / exaktes Layout auswählen</string>
+    <string name="style">3. Setup-Stil auswählen</string>
+    <string name="fine_tuning">4. Feintuning (optional)</string>
+    <string name="fine_tuning_open">FEINTUNING ÖFFNEN</string>
+    <string name="fine_tuning_close">FEINTUNING SCHLIESSEN</string>
+    <string name="fine_tuning_problem">Fahrproblem</string>
+    <string name="fine_tuning_strength">Stärke 1–3</string>
+    <string name="generate">SETUP JETZT ERSTELLEN</string>
+    <string name="generate_all">ALLE 5 SETUPS ERSTELLEN</string>
+    <string name="result">Ergebnis und Prüfstatus</string>
+    <string name="save">FERTIGE .CARSETUP SPEICHERN</string>
+    <string name="save_disabled">Speichern wird erst nach erfolgreicher Binärprüfung freigegeben.</string>
+    <string name="live_initial">LIVE-Index: Prüfung wird im Hintergrund vorbereitet …</string>
+    <string name="live_refresh">ONLINE-BESTAND AKTUALISIEREN</string>
+    <string name="beta_online_unavailable">Online-Suche in dieser Mustang-Beta noch nicht aktiviert</string>
+    <string name="beta_import">EIGENE MUSTANG-.CARSETUP FÜR DIESES LAYOUT IMPORTIEREN</string>
+    <string name="beta_import_missing">Für dieses exakte Layout ist noch keine eigene Mustang-Basis hinterlegt.</string>
+    <string name="beta_import_ok">Mustang-Basis privat und nur für dieses exakte Layout gespeichert.</string>
+    <string name="beta_import_missing_full">Für dieses exakte Layout ist noch keine eigene Mustang-Basis hinterlegt.\nDie Binärdatei besitzt keinen geprüften Track-Marker; deine Auswahl ist die exakte Layout-Zuordnung.</string>
+    <string name="beta_import_ready_full">Mustang-Basis privat und nur für dieses exakte Layout gespeichert.\nDie Binärdatei besitzt keinen geprüften Track-Marker; deine Auswahl ist die exakte Layout-Zuordnung.</string>
+    <string name="beta_import_checking">Mustang-Datei wird strukturell geprüft …</string>
+    <string name="beta_import_failed">Import abgelehnt: keine gültige Mustang-BETA-Basis.</string>
+    <string name="beta_warning">BETA – SAME-CAR BASIS / SPIELAKZEPTANZ NOCH NICHT BESTÄTIGT</string>
+    <string name="copyright">© Greenbuddy1976</string>
+    <string name="style_control">FAST CONTROL – Walter Röhrl\nSchnell, stabil, präzise und berechenbar</string>
+    <string name="style_attack">FAST ATTACK – Michael Schumacher\nHotlap, direktes Einlenken, kontrollierbar</string>
+    <string name="style_stable">FAST STABLE – Dieter Düsel\nRuhiges Heck auf Kerbs, Kuppen und Bodenwellen</string>
+    <string name="style_safe">FAST SAFE – Oma Hertha\nMaximale Sicherheitsreserve, trotzdem sinnvoll schnell</string>
+    <string name="style_long_run">FAST LONG RUN\nKonstante Balance für lange Stints</string>
+    <string name="result_empty">Noch kein Setup berechnet.</string>
+    <string name="live_check_running">LIVE-Prüfung läuft – maximal zwei vollständige Runden …</string>
+    <string name="beta_generation_running">Mustang-BETA: exakte Layout-Basis und Binärstruktur werden geprüft …</string>
+    <string name="binary_roundtrip_passed">Struktureller Binär-Roundtrip bestanden. Spielakzeptanz ist damit nicht bestätigt.</string>
+    <string name="binary_saved">Binäre .carsetup gespeichert und geprüft.</string>
+    <string name="save_failed">Speichern fehlgeschlagen – keine Erfolgsmeldung erzeugt.</string>
+</resources>

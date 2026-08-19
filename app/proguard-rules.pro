@@ -1,0 +1,2 @@
+-keep class ** implements com.greenbuddy.acevosetupengineer.engine.VerifiedWriterProvider { public <init>(); *; }
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod

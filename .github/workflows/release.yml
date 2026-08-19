@@ -1,0 +1,178 @@
+name: Verified Android Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.caching=false -Dorg.gradle.configuration-cache=false
+  RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/release-secrets/release.jks
+  RELEASE_KEY_ALIAS: acevosetup
+  RELEASE_STORE_PASSWORD: ${{ secrets.ACEVO_KEYSTORE_PASSWORD }}
+  RELEASE_KEY_PASSWORD: ${{ secrets.ACEVO_KEY_PASSWORD }}
+  VERIFIED_WRITER_PROVIDER_CLASS: ${{ secrets.ACEVO_WRITER_PROVIDER_CLASS }}
+  VERIFIED_BINARY_INSPECTOR_CLASS: ${{ secrets.ACEVO_BINARY_INSPECTOR_CLASS }}
+
+jobs:
+  verified-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    environment:
+      name: verified-release
+    steps:
+      - name: Clean checkout
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: Clean-room structure and forbidden files
+        run: bash ci/clean_room_check.sh .
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Inject protected release inputs
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_B64: ${{ secrets.ACEVO_KEYSTORE_BASE64 }}
+          VERIFIED_WRITERS_AAR_URL: ${{ secrets.ACEVO_WRITER_AAR_URL }}
+          VERIFIED_WRITERS_AAR_SHA256: ${{ secrets.ACEVO_WRITER_AAR_SHA256 }}
+          VERIFIED_INSPECTOR_AAR_URL: ${{ secrets.ACEVO_INSPECTOR_AAR_URL }}
+          VERIFIED_INSPECTOR_AAR_SHA256: ${{ secrets.ACEVO_INSPECTOR_AAR_SHA256 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          missing=0
+          require_secret() {
+            if [[ -z "$2" ]]; then
+              echo "::error::$1 is missing"
+              missing=1
+            fi
+          }
+          require_secret ACEVO_KEYSTORE_BASE64 "$RELEASE_KEYSTORE_B64"
+          require_secret ACEVO_KEYSTORE_PASSWORD "$RELEASE_STORE_PASSWORD"
+          require_secret ACEVO_KEY_PASSWORD "$RELEASE_KEY_PASSWORD"
+          require_secret ACEVO_WRITER_PROVIDER_CLASS "$VERIFIED_WRITER_PROVIDER_CLASS"
+          require_secret ACEVO_BINARY_INSPECTOR_CLASS "$VERIFIED_BINARY_INSPECTOR_CLASS"
+          require_secret ACEVO_WRITER_AAR_URL "$VERIFIED_WRITERS_AAR_URL"
+          require_secret ACEVO_WRITER_AAR_SHA256 "$VERIFIED_WRITERS_AAR_SHA256"
+          require_secret ACEVO_INSPECTOR_AAR_URL "$VERIFIED_INSPECTOR_AAR_URL"
+          require_secret ACEVO_INSPECTOR_AAR_SHA256 "$VERIFIED_INSPECTOR_AAR_SHA256"
+          if (( missing != 0 )); then
+            exit 1
+          fi
+          if [[ ! "$VERIFIED_WRITERS_AAR_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
+            echo '::error::ACEVO_WRITER_AAR_SHA256 must contain exactly 64 hexadecimal characters'
+            exit 1
+          fi
+          if [[ ! "$VERIFIED_INSPECTOR_AAR_SHA256" =~ ^[0-9a-fA-F]{64}$ ]]; then
+            echo '::error::ACEVO_INSPECTOR_AAR_SHA256 must contain exactly 64 hexadecimal characters'
+            exit 1
+          fi
+          if [[ "$VERIFIED_WRITER_PROVIDER_CLASS" == "$VERIFIED_BINARY_INSPECTOR_CLASS" ]]; then
+            echo '::error::Writer and inspector class identities must differ'
+            exit 1
+          fi
+          mkdir -p release-secrets app/libs verification-reports
+          printf '%s' "$RELEASE_KEYSTORE_B64" | base64 --decode > "$RELEASE_KEYSTORE_PATH"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            "$VERIFIED_WRITERS_AAR_URL" --output app/libs/verified-writers.aar
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            "$VERIFIED_INSPECTOR_AAR_URL" --output app/libs/verified-inspector.aar
+          test -s app/libs/verified-writers.aar
+          test -s app/libs/verified-inspector.aar
+          actual_writer_sha="$(sha256sum app/libs/verified-writers.aar | awk '{print $1}')"
+          actual_inspector_sha="$(sha256sum app/libs/verified-inspector.aar | awk '{print $1}')"
+          [[ "$actual_writer_sha" == "${VERIFIED_WRITERS_AAR_SHA256,,}" ]]
+          [[ "$actual_inspector_sha" == "${VERIFIED_INSPECTOR_AAR_SHA256,,}" ]]
+          [[ "$actual_writer_sha" != "$actual_inspector_sha" ]]
+          printf '%s  %s\n' "$actual_writer_sha" 'app/libs/verified-writers.aar' \
+            > verification-reports/writer-aar-sha256.txt
+          printf '%s  %s\n' "$actual_inspector_sha" 'app/libs/verified-inspector.aar' \
+            > verification-reports/inspector-aar-sha256.txt
+          chmod 600 "$RELEASE_KEYSTORE_PATH" app/libs/verified-writers.aar \
+            app/libs/verified-inspector.aar
+
+      - name: Verify confirmed certificate
+        run: bash ci/verify_certificate.sh
+
+      - name: Gradle 8.13 without cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-disabled: true
+
+      - name: Android SDK 35
+        uses: android-actions/setup-android@v3
+
+      - name: Install exact Android packages
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64'
+
+      - name: Inventory, unit, 12,425 contract and fine-tuning tests
+        run: gradle --no-daemon --no-build-cache --no-configuration-cache clean testDebugUnitTest
+
+      - name: Android lint
+        run: gradle --no-daemon --no-build-cache --no-configuration-cache lintRelease
+
+      - name: Release gate and signed build
+        run: gradle --no-daemon --no-build-cache --no-configuration-cache verifyReleaseInputs assembleRelease
+
+      - name: Rename and verify APK signature/hash/payload
+        shell: bash
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk The-Godfather-of-EVO-1.1.1.apk
+          bash ci/verify_apk.sh The-Godfather-of-EVO-1.1.1.apk
+
+      - name: Install, launch and run protected 12,425 binary contract matrix
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install -r The-Godfather-of-EVO-1.1.1.apk
+            adb shell am force-stop com.greenbuddy.acevosetupengineer
+            adb shell am start -W -n com.greenbuddy.acevosetupengineer/.MainActivity \
+              | tee verification-reports/app-start.txt
+            grep -Fq 'Status: ok' verification-reports/app-start.txt
+            test -n "$(adb shell pidof com.greenbuddy.acevosetupengineer | tr -d '\r')"
+            gradle --no-daemon --no-build-cache --no-configuration-cache connectedReleaseAndroidTest
+
+      - name: Collect reports
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p verification-reports/tests verification-reports/lint
+          cp -R app/build/reports/tests/. verification-reports/tests/ 2>/dev/null || true
+          cp -R app/build/reports/androidTests/. verification-reports/androidTests/ 2>/dev/null || true
+          cp -R app/build/test-results/. verification-reports/test-results/ 2>/dev/null || true
+          cp -R app/build/outputs/androidTest-results/. verification-reports/androidTest-results/ 2>/dev/null || true
+          cp -R app/build/reports/lint-results-release.* verification-reports/lint/ 2>/dev/null || true
+          cp app/build/reports/lint-results.txt verification-reports/lint/ 2>/dev/null || true
+
+      - name: Upload signed APK and verification reports
+        if: success() && github.event_name == 'push'
+        uses: actions/upload-artifact@v4
+        with:
+          name: The-Godfather-of-EVO-1.1.1-verified
+          path: |
+            The-Godfather-of-EVO-1.1.1.apk
+            verification-reports/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Delete temporary key material
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RELEASE_KEYSTORE_PATH" ]]; then shred -u "$RELEASE_KEYSTORE_PATH" || rm -f "$RELEASE_KEYSTORE_PATH"; fi
+          rm -f app/libs/verified-writers.aar app/libs/verified-inspector.aar
