@@ -1,0 +1,110 @@
+plugins {
+    id 'com.android.application'
+}
+
+def env = System.getenv()
+def providerClass = (env['VERIFIED_WRITER_PROVIDER_CLASS'] ?: '').replace('"', '')
+def signingReady = ['RELEASE_KEYSTORE_PATH', 'RELEASE_STORE_PASSWORD',
+                    'RELEASE_KEY_PASSWORD'].every { env[it] }
+
+android {
+    namespace 'com.greenbuddy.acevosetupengineer'
+    compileSdk 35
+    buildToolsVersion '35.0.0'
+
+    defaultConfig {
+        applicationId 'com.greenbuddy.acevosetupengineer'
+        minSdk 26
+        targetSdk 35
+        versionCode 4
+        versionName '1.1.1'
+        testInstrumentationRunner 'android.test.InstrumentationTestRunner'
+        buildConfigField 'String', 'SUPPORTED_GAME_VERSION', '"0.8.1"'
+        buildConfigField 'String', 'VERIFIED_WRITER_PROVIDER_CLASS', "\"${providerClass}\""
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    signingConfigs {
+        if (signingReady) {
+            release {
+                storeFile file(env['RELEASE_KEYSTORE_PATH'])
+                storePassword env['RELEASE_STORE_PASSWORD']
+                keyAlias env['RELEASE_KEY_ALIAS'] ?: 'acevosetup'
+                keyPassword env['RELEASE_KEY_PASSWORD']
+                enableV1Signing false
+                enableV2Signing true
+                enableV3Signing true
+                enableV4Signing false
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-debug'
+            debuggable true
+        }
+        release {
+            minifyEnabled false
+            shrinkResources false
+            if (signingReady) {
+                signingConfig signingConfigs.release
+            }
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    testBuildType 'release'
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+        animationsDisabled = true
+    }
+
+    packaging {
+        resources.excludes += ['META-INF/LICENSE*', 'META-INF/NOTICE*']
+    }
+
+    lint {
+        abortOnError true
+        checkReleaseBuilds true
+        warningsAsErrors false
+        baseline file('lint-baseline.xml')
+        disable 'GradleDependency'
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.aar'])
+    testImplementation 'junit:junit:4.13.2'
+}
+
+def verifyReleaseInputs = tasks.register('verifyReleaseInputs') {
+    group = 'verification'
+    description = 'Hard release gate for the protected verified writer and signing inputs.'
+    doLast {
+        def missing = []
+        if (!file('libs/verified-writers.aar').isFile()) missing << 'app/libs/verified-writers.aar'
+        if (!providerClass) missing << 'VERIFIED_WRITER_PROVIDER_CLASS'
+        if (!signingReady) missing << 'release signing environment variables'
+        if ((env['RELEASE_KEY_ALIAS'] ?: 'acevosetup') != 'acevosetup') missing << 'required alias acevosetup'
+        if (missing) {
+            throw new GradleException('RELEASE BLOCKED – unverified/missing inputs: ' + missing.join(', '))
+        }
+    }
+}
+
+tasks.configureEach { task ->
+    if (task.name in ['assembleRelease', 'bundleRelease', 'connectedReleaseAndroidTest']) {
+        task.dependsOn verifyReleaseInputs
+    }
+}

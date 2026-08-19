@@ -1,0 +1,119 @@
+name: Verified Android Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: -Dorg.gradle.daemon=false -Dorg.gradle.caching=false -Dorg.gradle.configuration-cache=false
+  RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/release-secrets/release.jks
+  RELEASE_KEY_ALIAS: acevosetup
+  RELEASE_STORE_PASSWORD: ${{ secrets.ACEVO_KEYSTORE_PASSWORD }}
+  RELEASE_KEY_PASSWORD: ${{ secrets.ACEVO_KEY_PASSWORD }}
+  VERIFIED_WRITER_PROVIDER_CLASS: ${{ secrets.ACEVO_WRITER_PROVIDER_CLASS }}
+
+jobs:
+  verified-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Clean checkout
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+
+      - name: JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Gradle 8.13 without cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-disabled: true
+
+      - name: Android SDK 35
+        uses: android-actions/setup-android@v3
+
+      - name: Install exact Android packages
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'platform-tools' 'emulator' 'system-images;android-35;google_apis;x86_64'
+
+      - name: Clean-room structure and forbidden files
+        run: bash ci/clean_room_check.sh .
+
+      - name: Inject protected release inputs
+        shell: bash
+        env:
+          RELEASE_KEYSTORE_B64: ${{ secrets.ACEVO_KEYSTORE_BASE64 }}
+          VERIFIED_WRITERS_AAR_B64: ${{ secrets.ACEVO_WRITER_AAR_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$RELEASE_KEYSTORE_B64"
+          test -n "$VERIFIED_WRITERS_AAR_B64"
+          mkdir -p release-secrets app/libs verification-reports
+          printf '%s' "$RELEASE_KEYSTORE_B64" | base64 --decode > "$RELEASE_KEYSTORE_PATH"
+          printf '%s' "$VERIFIED_WRITERS_AAR_B64" | base64 --decode > app/libs/verified-writers.aar
+          chmod 600 "$RELEASE_KEYSTORE_PATH"
+
+      - name: Verify confirmed certificate
+        run: bash ci/verify_certificate.sh
+
+      - name: Inventory, unit, 12,425 contract and fine-tuning tests
+        run: gradle --no-daemon --no-build-cache --no-configuration-cache clean testDebugUnitTest
+
+      - name: Android lint
+        run: gradle --no-daemon --no-build-cache --no-configuration-cache lintRelease
+
+      - name: Release gate and signed build
+        run: gradle --no-daemon --no-build-cache --no-configuration-cache verifyReleaseInputs assembleRelease
+
+      - name: Rename and verify APK signature/hash/payload
+        shell: bash
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk The-Godfather-of-EVO-1.1.1.apk
+          bash ci/verify_apk.sh The-Godfather-of-EVO-1.1.1.apk
+
+      - name: Install APK and run real 12,425 binary matrix
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install -r The-Godfather-of-EVO-1.1.1.apk
+            gradle --no-daemon --no-build-cache --no-configuration-cache connectedReleaseAndroidTest
+
+      - name: Collect reports
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p verification-reports/tests verification-reports/lint
+          cp -R app/build/reports/tests/. verification-reports/tests/ 2>/dev/null || true
+          cp -R app/build/reports/androidTests/. verification-reports/androidTests/ 2>/dev/null || true
+          cp -R app/build/reports/lint-results-release.* verification-reports/lint/ 2>/dev/null || true
+
+      - name: Upload signed APK and verification reports
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: The-Godfather-of-EVO-1.1.1-verified
+          path: |
+            The-Godfather-of-EVO-1.1.1.apk
+            verification-reports/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Delete temporary key material
+        if: always()
+        shell: bash
+        run: |
+          if [[ -f "$RELEASE_KEYSTORE_PATH" ]]; then shred -u "$RELEASE_KEYSTORE_PATH" || rm -f "$RELEASE_KEYSTORE_PATH"; fi
+          rm -f app/libs/verified-writers.aar

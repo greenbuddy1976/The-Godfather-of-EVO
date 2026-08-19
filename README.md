@@ -1,18 +1,44 @@
 # The Godfather of EVO 1.1.1
 
-Eigenständiger Android-Neuaufbau für nachvollziehbare AC-EVO-Setuppläne.
+Clean-room Android/Java source tree for **Assetto Corsa EVO Setup Engineer**.
 
-- 71 Fahrzeuge, darunter BMW M2, beide BMW M3 und Ford Mustang GT3
-- 24 exakte Layouts
-- fünf Profile: FAST CONTROL, FAST ATTACK, FAST STABLE, FAST SAFE, FAST LONG
-- acht aufklappbare Feintuning-Gruppen einschließlich Heckflügel
-- schwarz-gelbe Oberfläche ohne rote Aktionsflächen
-- Erststart-Index für SetupsMarket und RacePlace mit lokal gespeichertem Trefferstand
-- Mustang FAST ATTACK erzwingt auf jedem Layout TC 1
-- keine eingebettete `.carsetup`, keine Notfall-Datei, kein Spenderauto und kein ähnliches Layout
+- Application ID: `com.greenbuddy.acevosetupengineer`
+- Version: `1.1.1` (`versionCode 4`)
+- Android: API 26 minimum, compile/target API 35, Build Tools 35.0.0
+- Toolchain: JDK 17, Gradle 8.13, Android Gradle Plugin 8.13.2
+- Design: black/anthracite, yellow controls, white/light-grey text
+- Copyright: © Greenbuddy1976
 
-Die App erzeugt für jede Kombination einen manuellen, relativ zum Standardsetup beschriebenen
-Setupplan. Echte Online-Dateien werden ausschließlich als exakte Fahrzeug-/Layout-Treffer verlinkt;
-ein nicht belegter Binärexport wird nicht vorgetäuscht.
+## Truthful release state
 
-Build: `gradle -p cleanroom clean testDebugUnitTest lintRelease assembleRelease`
+This repository deliberately contains **no guessed AC EVO binary writer, donor setup,
+backup `.carsetup`, hidden default tuning values, or text export**. A release build is
+hard-gated until the separately verified writer module is supplied. Debug builds show
+the complete interaction flow but report `NICHT SICHER` instead of manufacturing a
+file when verified vehicle data or a writer is missing.
+
+The private verified writer is loaded through the `VerifiedWriterProvider` contract.
+It must cover every supported car and layout for game version 0.8.1, perform a complete
+decode/encode roundtrip, and report every individual verification flag. See
+`docs/PRIVATE_WRITER_CONTRACT.md`.
+
+## Build
+
+Use a clean installation of Gradle 8.13 and JDK 17:
+
+```bash
+gradle --no-daemon --no-build-cache --no-configuration-cache clean testDebugUnitTest lintDebug assembleDebug
+```
+
+The public tree is intentionally unable to run `assembleRelease`. A signed release
+requires the protected writer AAR and release keystore variables documented in the CI
+workflow. This is a safety property, not a missing fallback.
+
+## Evidence scope
+
+- The 71 displayed vehicle identities and the track inventory are version-bound and
+  carry provenance in source.
+- The JVM safety matrix validates that the public tree refuses all 71 × 35 × 5 =
+  12,425 requests instead of inventing binaries.
+- The release instrumentation matrix validates real binaries from the protected writer.
+- Automated verification is never described as a real driving test.
