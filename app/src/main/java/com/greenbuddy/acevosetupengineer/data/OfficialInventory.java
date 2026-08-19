@@ -65,7 +65,7 @@ public final class OfficialInventory {
         addCar(cars, "hyundai_i30_n", "Hyundai i30 N Hatchback (2021)");
         addCar(cars, "lamborghini_countach", "Lamborghini Countach");
         addCar(cars, "lamborghini_huracan_sto", "Lamborghini Huracán STO (2021)");
-        addCar(cars, "lancia_delta_hf_evo2", "Lancia Delta HF Integrale Evoluzione 2 (1993)");
+        addCar(cars, "lancia_delta_hf_evo2", "Lancia Delta HF Integrale “Evoluzione 2” (1993)");
         addCar(cars, "lotus_emira", "Lotus Emira (2021)");
         addCar(cars, "lotus_exige_v6_cup", "Lotus Exige V6 Cup (2014)");
         addCar(cars, "mazda_mx5_na", "Mazda MX-5 NA (1994)");
