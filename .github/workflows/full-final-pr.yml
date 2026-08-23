@@ -25,9 +25,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p project/app/src/main/assets/preloaded-setups
-          cat builddata/preloads.part00 builddata/preloads.part01 builddata/preloads.part02 builddata/preloads.part03 \
+          cat builddata/final0.b64 builddata/final1.b64 builddata/final2.b64 \
             | base64 --decode > "$RUNNER_TEMP/preloaded-setups.zip"
-          echo "2df0a589073f70b987238b926c271957aac81c3c9195887a0365bd3e7c56d526  $RUNNER_TEMP/preloaded-setups.zip" | sha256sum -c -
+          echo "1e0ecf860013e40918e61830019f6e03b93f46b86ef197b151b58b6abaf3822f  $RUNNER_TEMP/preloaded-setups.zip" | sha256sum -c -
           unzip -t "$RUNNER_TEMP/preloaded-setups.zip" >/dev/null
           unzip -q "$RUNNER_TEMP/preloaded-setups.zip" -d project/app/src/main/assets/preloaded-setups
           test "$(find project/app/src/main/assets/preloaded-setups -maxdepth 1 -name '*.carsetup' | wc -l)" -eq 31
