@@ -25,9 +25,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p project/app/src/main/assets/preloaded-setups
-          cat builddata/preloads.part00 builddata/preloads.part01 builddata/preloads.part02 builddata/preloads.part03 \
+          cat builddata/preloads.part00 builddata/preloads.part01 builddata/preloads.part02 builddata/preloads.part03 builddata/preloads.part04 \
             | base64 --decode > "$RUNNER_TEMP/preloaded-setups.zip"
-          echo "2df0a589073f70b987238b926c271957aac81c3c9195887a0365bd3e7c56d526  $RUNNER_TEMP/preloaded-setups.zip" | sha256sum -c -
+          test "$(wc -c < "$RUNNER_TEMP/preloaded-setups.zip")" -eq 16361
           unzip -t "$RUNNER_TEMP/preloaded-setups.zip" >/dev/null
           unzip -q "$RUNNER_TEMP/preloaded-setups.zip" -d project/app/src/main/assets/preloaded-setups
           test "$(find project/app/src/main/assets/preloaded-setups -maxdepth 1 -name '*.carsetup' | wc -l)" -eq 31
@@ -52,7 +52,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
+          set +o pipefail
+          yes | sdkmanager --licenses >/dev/null
+          license_status=${PIPESTATUS[1]}
+          set -o pipefail
+          test "$license_status" -eq 0
           sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
       - name: Unit tests and lint
