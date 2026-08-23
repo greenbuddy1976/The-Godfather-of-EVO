@@ -1,0 +1,90 @@
+name: Full Godfather Android
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'project/**'
+      - 'builddata/v2.00'
+      - 'builddata/v2.01'
+      - 'builddata/v2.02'
+      - 'builddata/v2.03'
+      - 'builddata/v2.04'
+      - 'builddata/v2.05'
+      - 'builddata/v2.06'
+      - '.github/workflows/full-final-pr.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-full:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout pull request
+        uses: actions/checkout@v4
+
+      - name: Restore verified 31 preloaded setups
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p project/app/src/main/assets/preloaded-setups
+          cat builddata/v2.00 builddata/v2.01 builddata/v2.02 builddata/v2.03 builddata/v2.04 builddata/v2.05 builddata/v2.06 \
+            | base64 --decode > "$RUNNER_TEMP/preloaded-setups.zip"
+          echo "2df0a589073f70b987238b926c271957aac81c3c9195887a0365bd3e7c56d526  $RUNNER_TEMP/preloaded-setups.zip" | sha256sum -c -
+          unzip -t "$RUNNER_TEMP/preloaded-setups.zip" >/dev/null
+          unzip -q "$RUNNER_TEMP/preloaded-setups.zip" -d project/app/src/main/assets/preloaded-setups
+          test "$(find project/app/src/main/assets/preloaded-setups -maxdepth 1 -name '*.carsetup' | wc -l)" -eq 31
+          test -s project/app/src/main/assets/preloaded-setups/Mustang_GT3_Nurburgring_Touristenfahrten_FAST_CONTROL.carsetup
+
+      - name: Configure JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Configure Gradle 8.13 without cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+          cache-disabled: true
+
+      - name: Configure Android SDK 36
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android components
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Unit tests and lint
+        shell: bash
+        run: gradle -p project --no-daemon --no-build-cache clean testDebugUnitTest lintDebug
+
+      - name: Build installable APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle -p project --no-daemon --no-build-cache assembleDebug
+          APK=project/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$APK"
+          cp "$APK" The_Godfather_of_EVO_2.2.0_FULL.apk
+
+      - name: Verify APK archive and preloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          unzip -t The_Godfather_of_EVO_2.2.0_FULL.apk >/dev/null
+          unzip -l The_Godfather_of_EVO_2.2.0_FULL.apk | grep -q 'assets/preloaded-setups/Mustang_GT3_Nurburgring_Touristenfahrten_FAST_CONTROL.carsetup'
+
+      - name: Upload full APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: The_Godfather_of_EVO_2.2.0_FULL
+          path: The_Godfather_of_EVO_2.2.0_FULL.apk
+          if-no-files-found: error
+          retention-days: 30
