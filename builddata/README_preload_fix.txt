@@ -1,0 +1,1 @@
+Preload payload is validated locally: 31 .carsetup files, Golden Mustang present, ZIP SHA-256 2df0a589073f70b987238b926c271957aac81c3c9195887a0365bd3e7c56d526. Build workflow must use only the exact validated payload and must not modify app logic.
