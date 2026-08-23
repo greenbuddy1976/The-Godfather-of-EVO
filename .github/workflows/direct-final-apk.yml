@@ -34,15 +34,18 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
-      - name: Verify exact source ZIP
+      - name: Reconstruct and verify exact source ZIP
         shell: bash
         run: |
           set -euo pipefail
-          echo "2b2ab103ddebf6d45a9e7d8958fd92c9962fdb4acf53c04534fccc86b9fd9f16  .direct-final/final_source.zip" | sha256sum -c -
-          unzip -t .direct-final/final_source.zip >/dev/null
+          cat .direct-final/chunk_*.b64 > /tmp/final.b64
+          test "$(wc -c < /tmp/final.b64)" -eq 113800
+          base64 -d /tmp/final.b64 > /tmp/final_source.zip
+          echo "2b2ab103ddebf6d45a9e7d8958fd92c9962fdb4acf53c04534fccc86b9fd9f16  /tmp/final_source.zip" | sha256sum -c -
+          unzip -t /tmp/final_source.zip >/dev/null
           rm -rf finalapp
           mkdir finalapp
-          unzip -q .direct-final/final_source.zip -d finalapp
+          unzip -q /tmp/final_source.zip -d finalapp
 
       - name: Build installable APK
         shell: bash
