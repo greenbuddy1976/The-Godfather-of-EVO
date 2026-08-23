@@ -1,0 +1,718 @@
+{
+  "schema": 1,
+  "gameVersion": "0.8.1",
+  "verifiedAtUtc": "2026-08-18T00:00:00Z",
+  "officialContentSource": "https://assettocorsa.gg/assetto-corsa-evo/",
+  "officialVersionSource": "https://store.steampowered.com/news/app/3058630/view/714533682400985284",
+  "vehicles": [
+    {
+      "category": "ROAD",
+      "id": "abarth-695-biposto-2022",
+      "name": "Abarth 695 Biposto (2022)",
+      "providerSlug": "abarth-695-biposto-2022",
+      "rangeKey": "abarth_695_biposto",
+      "signaturePrefix": "ks_abarth_695_biposto_"
+    },
+    {
+      "category": "ROAD",
+      "id": "alfa-romeo-75-18-turbo-evoluzione-1987",
+      "name": "Alfa Romeo 75 1.8 Turbo Evoluzione (1987)",
+      "providerSlug": "alfa-romeo-75-18-turbo-evoluzione-1987",
+      "rangeKey": "alfa_romeo_75_turbo_evo",
+      "signaturePrefix": "ks_alfa_romeo_75_turbo_evo_"
+    },
+    {
+      "category": "ROAD",
+      "id": "alfa-romeo-giulia-gtam-2021",
+      "name": "Alfa Romeo Giulia GTAm (2021)",
+      "providerSlug": "alfa-romeo-giulia-gtam-2021",
+      "rangeKey": "alfa_romeo_giulia_gtam",
+      "signaturePrefix": "ks_alfa_romeo_giulia_gtam_"
+    },
+    {
+      "category": "ROAD",
+      "id": "alfa-romeo-junior-elettrica-veloce-2024",
+      "name": "Alfa Romeo Junior Elettrica Veloce (2024)",
+      "providerSlug": "alfa-romeo-junior-elettrica-veloce-2024",
+      "rangeKey": "alfa_romeo_junior",
+      "signaturePrefix": "ks_alfa_romeo_junior_"
+    },
+    {
+      "category": "ROAD",
+      "id": "alpine-a110-s",
+      "name": "Alpine A110 S (2020)",
+      "providerSlug": "alpine-a110-s",
+      "signaturePrefix": "ks_alpine_a110_s_",
+      "rangeKey": "alpine_a110_s"
+    },
+    {
+      "category": "ROAD",
+      "id": "alpine-a290-beta-2023",
+      "name": "Alpine A290_β (2023)",
+      "providerSlug": "alpine-a290-beta-2023",
+      "rangeKey": "alpine_a290_b",
+      "signaturePrefix": "ks_alpine_a290_b_"
+    },
+    {
+      "category": "ROAD",
+      "id": "audi-rs-3-sportback",
+      "name": "Audi RS 3 Sportback (2022)",
+      "providerSlug": "audi-rs-3-sportback",
+      "signaturePrefix": "ks_audi_rs_3_sportback_",
+      "rangeKey": "audi_rs_3_sportback"
+    },
+    {
+      "category": "ROAD",
+      "id": "audi-sport-quattro-1983",
+      "name": "Audi Sport quattro (1983)",
+      "providerSlug": "audi-sport-quattro-1983",
+      "rangeKey": "audi_sport_quattro",
+      "signaturePrefix": "ks_audi_sport_quattro_"
+    },
+    {
+      "category": "ROAD",
+      "id": "bmw-m3-e46-csl-2003",
+      "name": "BMW M3 E46 CSL (2003)",
+      "providerSlug": "bmw-m3-e46-csl-2003",
+      "rangeKey": "bmw_m3_e46_csl",
+      "signaturePrefix": "ks_bmw_m3_e46_csl_"
+    },
+    {
+      "category": "ROAD",
+      "id": "audi-rs-6-avant",
+      "name": "Audi RS 6 Avant",
+      "providerSlug": "audi-rs-6-avant",
+      "rangeKey": "audi_rs_6_avant",
+      "signaturePrefix": "ks_audi_rs_6_avant_"
+    },
+    {
+      "category": "ROAD",
+      "id": "bmw-m2-coupe-g87",
+      "name": "BMW M2 Coupe (G87)",
+      "providerSlug": "bmw-m2-coupe-g87",
+      "rangeKey": "bmw_m2_coupe",
+      "signaturePrefix": "ks_bmw_m2_coupe_"
+    },
+    {
+      "category": "ROAD",
+      "id": "bmw-m4-csl-g82-2022",
+      "name": "BMW M4 CSL G82 (2022)",
+      "providerSlug": "bmw-m4-csl-g82-2022",
+      "rangeKey": "bmw_m4_csl",
+      "signaturePrefix": "ks_bmw_m4_csl_"
+    },
+    {
+      "category": "ROAD",
+      "id": "bmw-m8-competition-2022",
+      "name": "BMW M8 Competition (2022)",
+      "providerSlug": "bmw-m8-competition-2022",
+      "rangeKey": "bmw_m8_competition",
+      "signaturePrefix": "ks_bmw_m8_competition_"
+    },
+    {
+      "category": "ROAD",
+      "id": "bmw-m3-e30-sport-evo",
+      "name": "BMW M3 Sport Evo (E30)",
+      "providerSlug": "bmw-m3-e30-sport-evo",
+      "signaturePrefix": "ks_bmw_m3_e30_evo_iii_",
+      "rangeKey": "bmw_m3_e30_evo_iii"
+    },
+    {
+      "category": "ROAD",
+      "id": "caterham-485-csr",
+      "name": "Caterham 485 CSR",
+      "providerSlug": "caterham-485-csr",
+      "signaturePrefix": "ks_caterham_485_csr_",
+      "rangeKey": "caterham_485_csr"
+    },
+    {
+      "category": "ROAD",
+      "id": "chevrolet-camaro-zl1-2022",
+      "name": "Chevrolet Camaro ZL1 (2022)",
+      "providerSlug": "chevrolet-camaro-zl1-2022",
+      "rangeKey": "chevrolet_camaro_zl1",
+      "signaturePrefix": "ks_chevrolet_camaro_zl1_"
+    },
+    {
+      "category": "ROAD",
+      "id": "dallara-exp",
+      "name": "Dallara EXP",
+      "providerSlug": "dallara-exp",
+      "rangeKey": "dallara_exp",
+      "signaturePrefix": "ks_dallara_exp_"
+    },
+    {
+      "category": "ROAD",
+      "id": "dallara-stradale",
+      "name": "Dallara Stradale",
+      "providerSlug": "dallara-stradale",
+      "signaturePrefix": "ks_dallara_stradale_coupe_",
+      "rangeKey": "dallara_stradale_coupe"
+    },
+    {
+      "category": "ROAD",
+      "id": "ferrari-288-gto",
+      "name": "Ferrari 288 GTO",
+      "providerSlug": "ferrari-288-gto",
+      "signaturePrefix": "ks_ferrari_288_gto_",
+      "rangeKey": "ferrari_288_gto"
+    },
+    {
+      "category": "ROAD",
+      "id": "ferrari-296-gtb",
+      "name": "Ferrari 296 GTB (2021)",
+      "providerSlug": "ferrari-296-gtb",
+      "rangeKey": "ferrari_296_gtb",
+      "signaturePrefix": "ks_ferrari_296_gtb_"
+    },
+    {
+      "category": "ROAD",
+      "id": "ferrari-daytona-sp3",
+      "name": "Ferrari Daytona SP3 (2021)",
+      "providerSlug": "ferrari-daytona-sp3",
+      "signaturePrefix": "ks_ferrari_daytona_sp3_",
+      "rangeKey": "ferrari_daytona_sp3"
+    },
+    {
+      "category": "ROAD",
+      "id": "ford-escort-rs-cosworth-1994",
+      "name": "Ford Escort RS Cosworth (1994)",
+      "providerSlug": "ford-escort-rs-cosworth-1994",
+      "rangeKey": "ford_escort_rs_cosworth",
+      "signaturePrefix": "ks_ford_escort_rs_cosworth_"
+    },
+    {
+      "category": "ROAD",
+      "id": "honda-nsx-r-1992",
+      "name": "Honda NSX-R (1992)",
+      "providerSlug": "honda-nsx-r-1992",
+      "rangeKey": "honda_nsx_r",
+      "signaturePrefix": "ks_honda_nsx_r_"
+    },
+    {
+      "category": "ROAD",
+      "id": "honda-s-2000-2003",
+      "name": "Honda S-2000 (2003)",
+      "providerSlug": "honda-s-2000-2003",
+      "rangeKey": "honda_s2000_ap1",
+      "signaturePrefix": "ks_honda_s2000_ap1_"
+    },
+    {
+      "category": "ROAD",
+      "id": "hyundai-i30-n-hatchback-2021",
+      "name": "Hyundai i30 N Hatchback (2021)",
+      "providerSlug": "hyundai-i30-n-hatchback-2021",
+      "rangeKey": "hyundai_i30_n_hb",
+      "signaturePrefix": "ks_hyundai_i30_n_hb_"
+    },
+    {
+      "category": "ROAD",
+      "id": "lamborghini-countach",
+      "name": "Lamborghini Countach",
+      "providerSlug": "lamborghini-countach",
+      "rangeKey": "lamborghini_countach",
+      "signaturePrefix": "ks_lamborghini_countach_"
+    },
+    {
+      "category": "ROAD",
+      "id": "lamborghini-huracan-sto-2021",
+      "name": "Lamborghini Huracán STO (2021)",
+      "providerSlug": "lamborghini-huracan-sto-2021",
+      "rangeKey": "lamborghini_huracan_sto",
+      "signaturePrefix": "ks_lamborghini_huracan_sto_"
+    },
+    {
+      "category": "ROAD",
+      "id": "lancia-delta-hf-integrale-evoluzione-2-1993",
+      "name": "Lancia Delta HF Integrale Evoluzione 2 (1993)",
+      "providerSlug": "lancia-delta-hf-integrale-evoluzione-2-1993",
+      "rangeKey": "lancia_delta_hf_integrale_evo_ii",
+      "signaturePrefix": "ks_lancia_delta_hf_integrale_evo_ii_"
+    },
+    {
+      "category": "ROAD",
+      "id": "lotus-emira-2021",
+      "name": "Lotus Emira (2021)",
+      "providerSlug": "lotus-emira-2021",
+      "rangeKey": "lotus_emira",
+      "signaturePrefix": "ks_lotus_emira_"
+    },
+    {
+      "category": "ROAD",
+      "id": "lotus-exige-v6-cup",
+      "name": "Lotus Exige V6 Cup (2014)",
+      "providerSlug": "lotus-exige-v6-cup",
+      "rangeKey": "lotus_exige_v6_cup",
+      "signaturePrefix": "ks_lotus_exige_v6_cup_"
+    },
+    {
+      "category": "ROAD",
+      "id": "mazda-mx-5-na-1994",
+      "name": "Mazda MX-5 NA (1994)",
+      "providerSlug": "mazda-mx-5-na-1994",
+      "rangeKey": "mazda_mx5_na",
+      "signaturePrefix": "ks_mazda_mx5_na_"
+    },
+    {
+      "category": "ROAD",
+      "id": "mini-john-cooper-s-mk-vi-1990",
+      "name": "Mini John Cooper S Mk VI (1990)",
+      "providerSlug": "mini-john-cooper-s-mk-vi-1990",
+      "rangeKey": "mini_jcs_1990",
+      "signaturePrefix": "ks_mini_jcs_1990_"
+    },
+    {
+      "category": "ROAD",
+      "id": "mercedes-190e-evo-ii",
+      "name": "Mercedes-Benz 190E AMG 2.5-16 Evo II",
+      "providerSlug": "mercedes-190e-evo-ii",
+      "signaturePrefix": "ks_mercedes_190e_evo_ii_",
+      "rangeKey": "mercedes_190e_evo_ii"
+    },
+    {
+      "category": "ROAD",
+      "id": "nissan-datsun-240z-s30",
+      "name": "Nissan Datsun 240Z (S30)",
+      "providerSlug": "nissan-datsun-240z-s30",
+      "rangeKey": "datsun_240z_fairlady",
+      "signaturePrefix": "ks_datsun_240z_fairlady_"
+    },
+    {
+      "category": "ROAD",
+      "id": "nissan-datsun-240z-tuned",
+      "name": "Nissan Datsun 240Z (S30) – Tuned",
+      "providerSlug": "nissan-datsun-240z-tuned",
+      "signaturePrefix": "ks_datsun_240z_fairlady_"
+    },
+    {
+      "category": "ROAD",
+      "id": "porsche-718-cayman-gt4-rs",
+      "name": "Porsche 718 Cayman GT4 RS (2024)",
+      "providerSlug": "porsche-718-cayman-gt4-rs",
+      "rangeKey": "porsche_718_cayman_gt4_rs",
+      "signaturePrefix": "ks_porsche_718_cayman_gt4_rs_"
+    },
+    {
+      "category": "ROAD",
+      "id": "porsche-911-turbo-36-964-1993",
+      "name": "Porsche 911 Turbo 3.6 [964] (1993)",
+      "providerSlug": "porsche-911-turbo-36-964-1993",
+      "rangeKey": "porsche_964_turbo_3_6",
+      "signaturePrefix": "ks_porsche_964_turbo_3_6_"
+    },
+    {
+      "category": "ROAD",
+      "id": "porsche-911-992-gt3-rs",
+      "name": "Porsche 911 (992) GT3 RS",
+      "providerSlug": "porsche-911-992-gt3-rs",
+      "signaturePrefix": "ks_porsche_992_gt3_rs_",
+      "rangeKey": "porsche_992_gt3_rs"
+    },
+    {
+      "category": "ROAD",
+      "id": "peugeot-205-t16-1984",
+      "name": "Peugeot 205 T16 (1984)",
+      "providerSlug": "peugeot-205-t16-1984",
+      "rangeKey": "peugeot_205_t16",
+      "signaturePrefix": "ks_peugeot_205_t16_"
+    },
+    {
+      "category": "ROAD",
+      "id": "renault-5-gt-turbo-1990",
+      "name": "Renault 5 GT Turbo (1990)",
+      "providerSlug": "renault-5-gt-turbo-1990",
+      "rangeKey": "renault_5_gt_turbo",
+      "signaturePrefix": "ks_renault_5_gt_turbo_"
+    },
+    {
+      "category": "ROAD",
+      "id": "toyota-ae86",
+      "name": "Toyota AE86",
+      "providerSlug": "toyota-ae86",
+      "rangeKey": "toyota_ae86_sprinter_trueno",
+      "signaturePrefix": "ks_toyota_ae86_sprinter_trueno_"
+    },
+    {
+      "category": "ROAD",
+      "id": "toyota-ae86-tuned",
+      "name": "Toyota AE86 Tuned",
+      "providerSlug": "toyota-ae86-tuned"
+    },
+    {
+      "category": "ROAD",
+      "id": "toyota-gr86",
+      "name": "Toyota GR86 (2024)",
+      "providerSlug": "toyota-gr86",
+      "rangeKey": "toyota_gr86",
+      "signaturePrefix": "ks_toyota_gr86_"
+    },
+    {
+      "category": "ROAD",
+      "id": "toyota-supra-turbo-rz-1998",
+      "name": "Toyota Supra Turbo RZ (1998)",
+      "providerSlug": "toyota-supra-turbo-rz-1998",
+      "rangeKey": "toyota_supra_mkiv",
+      "signaturePrefix": "ks_toyota_supra_mkiv_"
+    },
+    {
+      "category": "ROAD",
+      "id": "toyota-supra-turbo-rz-v2-drift",
+      "name": "Toyota Supra Turbo RZ V2 DRIFT",
+      "providerSlug": "toyota-supra-turbo-rz-v2-drift"
+    },
+    {
+      "category": "ROAD",
+      "id": "volkswagen-golf-8-gti-clubsport-2022",
+      "name": "Volkswagen Golf 8 GTI Clubsport (2022)",
+      "providerSlug": "volkswagen-golf-8-gti-clubsport-2022",
+      "rangeKey": "volkswagen_golf_gti_mk8",
+      "signaturePrefix": "ks_volkswagen_golf_gti_mk8_"
+    },
+    {
+      "category": "ROAD",
+      "id": "vw-golf-8-r",
+      "name": "Volkswagen Golf 8 R",
+      "providerSlug": "vw-golf-8-r",
+      "signaturePrefix": "ks_volkswagen_golf_r_mk8_",
+      "rangeKey": "volkswagen_golf_r_mk8"
+    },
+    {
+      "category": "ROAD",
+      "id": "volkswagen-golf-gti-mk1",
+      "name": "Volkswagen Golf GTI MK1",
+      "providerSlug": "volkswagen-golf-gti-mk1",
+      "rangeKey": "volkswagen_golf_gti_mk1",
+      "signaturePrefix": "ks_volkswagen_golf_gti_mk1_"
+    },
+    {
+      "category": "RACING",
+      "id": "alfa-romeo-giulia-sprint-gta",
+      "name": "Alfa Romeo Giulia Sprint GTA (1965)",
+      "providerSlug": "alfa-romeo-giulia-sprint-gta",
+      "rangeKey": "alfa_romeo_giulia_gta_sprint",
+      "signaturePrefix": "ks_alfa_romeo_giulia_gta_sprint_"
+    },
+    {
+      "category": "RACING",
+      "id": "audi-r8-lms-gt3-evo-ii",
+      "name": "Audi R8 LMS GT3 Evo II",
+      "providerSlug": "audi-r8-lms-gt3-evo-ii",
+      "signaturePrefix": "ks_audi_r8_lms_gt3_evo_2_",
+      "rangeKey": "audi_r8_lms_gt3_evo_2"
+    },
+    {
+      "category": "RACING",
+      "id": "audi-r8-lms-gt4-evo",
+      "name": "Audi R8 LMS GT4 Evo",
+      "providerSlug": "audi-r8-lms-gt4-evo",
+      "signaturePrefix": "ks_audi_r8_lms_gt4_evo_",
+      "rangeKey": "audi_r8_lms_gt4_evo"
+    },
+    {
+      "category": "RACING",
+      "id": "bmw-m4-gt3-evo",
+      "name": "BMW M4 GT3 EVO",
+      "providerSlug": "bmw-m4-gt3-evo",
+      "signaturePrefix": "ks_bmw_m4_gt3_",
+      "rangeKey": "bmw_m4_gt3"
+    },
+    {
+      "category": "RACING",
+      "id": "bmw-m2-cs-racing",
+      "name": "BMW M2 CS Racing (2020)",
+      "providerSlug": "bmw-m2-cs-racing",
+      "rangeKey": "bmw_m2_cs_racing",
+      "signaturePrefix": "ks_bmw_m2_cs_racing_"
+    },
+    {
+      "category": "RACING",
+      "id": "caterham-academy",
+      "name": "Caterham Seven Academy Racer",
+      "providerSlug": "caterham-academy",
+      "rangeKey": "caterham_academy",
+      "signaturePrefix": "ks_caterham_academy_"
+    },
+    {
+      "category": "RACING",
+      "id": "ferrari-296-gt3",
+      "name": "Ferrari 296 GT3",
+      "providerSlug": "ferrari-296-gt3",
+      "signaturePrefix": "ks_ferrari_296_gt3_",
+      "rangeKey": "ferrari_296_gt3"
+    },
+    {
+      "category": "RACING",
+      "id": "ferrari-488-challenge-evo",
+      "name": "Ferrari 488 Challenge Evo (2021)",
+      "providerSlug": "ferrari-488-challenge-evo",
+      "signaturePrefix": "ks_ferrari_488_challenge_evo_",
+      "rangeKey": "ferrari_488_challenge_evo"
+    },
+    {
+      "category": "RACING",
+      "id": "ferrari-f40-lm",
+      "name": "Ferrari F40 LM (1993)",
+      "providerSlug": "ferrari-f40-lm",
+      "rangeKey": "ferrari_f40_lm",
+      "signaturePrefix": "ks_ferrari_f40_lm_"
+    },
+    {
+      "category": "RACING",
+      "id": "ferrari-f2004",
+      "name": "Ferrari F2004",
+      "providerSlug": "ferrari-f2004",
+      "rangeKey": "ferrari_f2004",
+      "signaturePrefix": "ks_ferrari_f2004_"
+    },
+    {
+      "category": "RACING",
+      "id": "ferrari-sf-25-2025",
+      "name": "Ferrari SF-25 (2025)",
+      "providerSlug": "ferrari-sf-25-2025",
+      "rangeKey": "ferrari_sf_25",
+      "signaturePrefix": "ks_ferrari_sf_25_"
+    },
+    {
+      "category": "RACING",
+      "id": "ford-mustang-gt3",
+      "name": "Ford Mustang GT3",
+      "providerSlug": "ford-mustang-gt3",
+      "signaturePrefix": "ks_ford_mustang_gt3_",
+      "rangeKey": "ford_mustang_gt3"
+    },
+    {
+      "category": "RACING",
+      "id": "ktm-x-bow-gt2",
+      "name": "KTM X-BOW GT2",
+      "providerSlug": "ktm-x-bow-gt2",
+      "signaturePrefix": "ks_ktm_x_bow_gt2_",
+      "rangeKey": "ktm_x_bow_gt2"
+    },
+    {
+      "category": "RACING",
+      "id": "ktm-x-bow-gt4",
+      "name": "KTM X-BOW GT4",
+      "providerSlug": "ktm-x-bow-gt4",
+      "signaturePrefix": "ks_ktm_x_bow_gt4_",
+      "rangeKey": "ktm_x_bow_gt4"
+    },
+    {
+      "category": "RACING",
+      "id": "lamborghini-huracan-st-evo2",
+      "name": "Lamborghini Huracán Super Trofeo EVO2",
+      "providerSlug": "lamborghini-huracan-st-evo2",
+      "signaturePrefix": "ks_lamborghini_huracan_st_evo2_",
+      "rangeKey": "lamborghini_huracan_st_evo2"
+    },
+    {
+      "category": "RACING",
+      "id": "maserati-mc20-gt2",
+      "name": "Maserati GT2 (2023)",
+      "providerSlug": "maserati-mc20-gt2",
+      "signaturePrefix": "ks_maserati_mc20_gt2_",
+      "rangeKey": "maserati_mc20_gt2"
+    },
+    {
+      "category": "RACING",
+      "id": "mazda-mx-5-nd-cup",
+      "name": "Mazda MX5 ND Cup (2017)",
+      "providerSlug": "mazda-mx-5-nd-cup",
+      "signaturePrefix": "ks_mazda_mx5_nd_cup_",
+      "rangeKey": "mazda_mx5_nd_cup"
+    },
+    {
+      "category": "RACING",
+      "id": "mercedes-amg-gt2",
+      "name": "Mercedes-AMG GT2 (2023)",
+      "providerSlug": "mercedes-amg-gt2",
+      "signaturePrefix": "ks_mercedes_amg_gt2_",
+      "rangeKey": "mercedes_amg_gt2"
+    },
+    {
+      "category": "RACING",
+      "id": "porsche-718-cayman-gt4-clubsport",
+      "name": "Porsche 718 Cayman GT4 Clubsport",
+      "providerSlug": "porsche-718-cayman-gt4-clubsport",
+      "rangeKey": "porsche_718_cayman_gt4_cs_mr",
+      "signaturePrefix": "ks_porsche_718_cayman_gt4_cs_mr_"
+    },
+    {
+      "category": "RACING",
+      "id": "porsche-935",
+      "name": "Porsche 935",
+      "providerSlug": "porsche-935",
+      "signaturePrefix": "ks_porsche_935_",
+      "rangeKey": "porsche_935"
+    },
+    {
+      "category": "RACING",
+      "id": "porsche-911-gt3-cup-992",
+      "name": "Porsche 911 GT3 Cup [992] (2021)",
+      "providerSlug": "porsche-911-gt3-cup-992",
+      "signaturePrefix": "ks_porsche_992_gt3_cup_",
+      "rangeKey": "porsche_992_gt3_cup"
+    },
+    {
+      "category": "RACING",
+      "id": "porsche-991-gt2-rs-clubsport-evo",
+      "name": "Porsche 991II GT2 RS Clubsport Evo",
+      "providerSlug": "porsche-991-gt2-rs-clubsport-evo",
+      "signaturePrefix": "ks_porsche_991ii_gt2_rs_clubsport_evo_",
+      "rangeKey": "porsche_991ii_gt2_rs_clubsport_evo"
+    },
+    {
+      "category": "RACING",
+      "id": "porsche-992-gt3-r-rennsport",
+      "name": "Porsche 992 GT3 R Rennsport",
+      "providerSlug": "porsche-992-gt3-r-rennsport",
+      "signaturePrefix": "ks_porsche_992_gt3_r_rennsport_",
+      "rangeKey": "porsche_992_gt3_r_rennsport"
+    }
+  ],
+  "layouts": [
+    {
+      "id": "bathurst",
+      "name": "Bathurst",
+      "providerSlug": "mount-panorama",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "brands-hatch-gp",
+      "name": "Brands Hatch GP",
+      "providerSlug": "brands-hatch",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "brands-hatch-indy",
+      "name": "Brands Hatch Indy",
+      "providerSlug": "brands-hatch-indy",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "circuit-of-the-americas",
+      "name": "Circuit of the Americas",
+      "providerSlug": "cota",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "donington-park-international",
+      "name": "Donington Park International",
+      "providerSlug": "donington-park-international",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "fuji-speedway",
+      "name": "Fuji Speedway",
+      "providerSlug": "fuji-speedway",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "imola",
+      "name": "Imola",
+      "providerSlug": "imola",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "kyalami-grand-prix",
+      "name": "Kyalami Grand Prix",
+      "providerSlug": "kyalami",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "laguna-seca",
+      "name": "Laguna Seca",
+      "providerSlug": "laguna-seca",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "monza",
+      "name": "Monza",
+      "providerSlug": "monza",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "nurburgring-gp",
+      "name": "Nürburgring GP",
+      "providerSlug": "nurburgring",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "nurburgring-sprint",
+      "name": "Nürburgring Sprint",
+      "providerSlug": "nurburgring-sprint",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "nurburgring-24h",
+      "name": "Nürburgring 24h",
+      "providerSlug": "nurburgring-24h",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "nordschleife",
+      "name": "Nordschleife",
+      "providerSlug": "nurburgring-nordschleife",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "nordschleife-touristenfahrten",
+      "name": "Nordschleife Touristenfahrten",
+      "providerSlug": "nurburgring-touristenfahrten",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "oulton-park-gp",
+      "name": "Oulton Park GP",
+      "providerSlug": "oulton-park",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "oulton-park-fosters",
+      "name": "Oulton Park Fosters",
+      "providerSlug": "oulton-park-fosters",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "paul-ricard",
+      "name": "Paul Ricard",
+      "providerSlug": "paul-ricard",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "red-bull-ring",
+      "name": "Red Bull Ring",
+      "providerSlug": "red-bull-ring",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "road-atlanta",
+      "name": "Road Atlanta",
+      "providerSlug": "road-atlanta",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "sebring",
+      "name": "Sebring",
+      "providerSlug": "sebring",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "spa-francorchamps",
+      "name": "SPA Francorchamps",
+      "providerSlug": "spa-francorchamps",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "suzuka",
+      "name": "Suzuka",
+      "providerSlug": "suzuka",
+      "exactLayoutVerified": true
+    },
+    {
+      "id": "watkins-glen-short-inner-loop",
+      "name": "Watkins Glen Short Inner Loop",
+      "providerSlug": "watkins-glen-short-inner-loop",
+      "exactLayoutVerified": true
+    }
+  ]
+}
