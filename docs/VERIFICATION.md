@@ -1,0 +1,154 @@
+# Verification record
+
+## Version and inventory
+
+- App game version: Assetto Corsa EVO `0.8.1`.
+- Official update announcement date: 2026-07-22.
+- Official inventory manifest: `project/app/src/main/assets/catalog-0.8.1.json`.
+- EVO mechanical model/range identities: 68.
+- Verified binary vehicle identities: 69.
+- Official vehicle/name/thumbnail mappings: 71/71.
+- Exact layout identities and engineering profiles: 24/24.
+- Explicitly blocked variant ranges: Datsun 240Z Tuned, AE86 Tuned and Supra
+  V2 Drift. The public extractor groups variant limit files but deliberately
+  publishes the stock entry, so the app does not reuse it as a donor.
+
+## Per-car range source
+
+- Project: `SpeedHQ/RaceIQ`.
+- Pinned commit: `0bb86a3d3b6a16f2d534bcbecd9c3d21f26dc91c`.
+- Generated range-data commit: `8ff0c88cf504240062204ab4e63c8c3b5e3a6f14`
+  (2026-07-25, after the official 0.8.1 release).
+- Source blob: `fba7d88327c4e421189c37f44d3bbd23ad1c50ee`.
+- Included SHA-256:
+  `62b277050cf60544fcb1c3ceb833fbcbd96ba5f36ae86f666ab01f8cad6c791c`.
+- Provenance: extracted from
+  `content/cars/<ks_model>/data/setup/*.carsetuplimits` in the installed game.
+
+Invalid or incomplete controls are rejected individually, not repaired. The
+current source contains one missing step (`audi_r8_lms_gt4_evo/rearARB`), one
+inverted differential range (`ktm_x_bow_gt4/diffCoast`) and two inverted spring
+ranges (`mini_jcs_1990`). Those four controls are omitted while the remaining
+independently valid controls of the three cars stay available.
+
+## Exact-layout engineering profiles
+
+- Manifest: `project/app/src/main/assets/track-engineering-profiles-0.8.1.json`.
+- Coverage: 24/24 catalog layout IDs; no nearest-track substitution.
+- Nineteen rows are deterministically derived from the exact EVO centerline at
+  pinned RaceIQ commit `0bb86a3d...`: path length and normalized curvature
+  distribution produce speed, braking and traction demand without any setup
+  values.
+- Five layout-specific rows use exact public circuit facts for Nürburgring
+  Sprint, Nürburgring 24h, Nordschleife Touristenfahrten, Oulton Park Fosters
+  and Watkins Glen Short/Inner Loop. They are separate exact-layout records,
+  not donor-track copies.
+- Surface/bump demand remains neutral in model v1 and is not used as an
+  evidence-free tuning input.
+
+The manifest fingerprint plus exact layout ID is included in every SELF CALC
+audit trail.
+
+## SELF CALC and structure-carrier proof
+
+SELF CALC is a transparent range-derived model. It starts from no setup file,
+default, average, median or donor value. For every safely writable parameter it
+computes an explicit fraction from the selected vehicle's version-pinned
+minimum/maximum/step, the exact layout demands and the selected driving mode.
+The hard guard prevents starting on a range end stop. Optional natural-language
+fine-tuning is then applied in verified steps.
+
+A same-car `.carsetup` is accepted only when its decoded signature matches the
+selected exact vehicle. Resolution is automatic: a release-pinned carrier,
+then a LIVE-verified same-car file, then the integrity-checked per-car cache.
+A manually selected file remains an optional override, never a prerequisite.
+The carrier supplies protobuf field placement only. Before export, every
+authorized field that the real same-car protobuf serializes is replaced. A
+fixed or absent field (for example front aero on a car that does not serialize
+it) is explicitly audited and skipped instead of blocking every other control.
+Per-wheel fields are written absolutely left/right, so stored asymmetry cannot
+survive as an input. Regression coverage proves that carriers with different
+stored tyre numbers produce the same newly generated tyre bytes.
+
+The current clean-room data contains 68 usable range-model identities. The four
+malformed individual controls listed above are fail-closed omissions.
+Physical N/m ARB ranges are writable. Click-only ARB rows are omitted until a
+per-car click-to-stiffness table is verified. Brake-pressure and engine-map
+fields are likewise omitted rather than guessed. Offline same-car structure
+coverage is release-pinned for the five RacePlace 0.8.1 cars; LIVE-verified
+same-car structures can extend that coverage and are cached per car.
+
+## Vehicle thumbnails
+
+- Manifest: `project/app/src/main/assets/vehicle-thumbnails-0.8.1.json`.
+- Source: the official Assetto Corsa WordPress media API at
+  `https://assettocorsa.gg/wp-json/wp/v2/media`.
+- Vehicle-ID/name mappings: 71/71.
+- Live response audit: 71/71 HTTP images decoded as JPEG at exactly 300 × 169
+  pixels; maximum response size 18,371 bytes.
+- Every mapping records the official media ID, caption, thumbnail URL, source
+  endpoint and accessible alternative text. Two captions differ only in
+  official typography (narrow no-break space/curly quotation marks).
+- Tuned Datsun 240Z, tuned Toyota AE86 and Supra V2 Drift use their own
+  separately captioned media records.
+
+The image bytes are not bundled or relicensed. The app downloads only the
+allowlisted HTTPS thumbnails from `assettocorsa.gg`, caches successful files,
+and otherwise displays a neutral local vehicle pictogram. A generation token
+prevents a late response for a previous spinner selection from appearing under
+the newly selected vehicle.
+
+## Real `.carsetup` audit
+
+Audit source: public RacePlace `ACE Baseline Setups by DTVR 0.8.1` package,
+download endpoint `https://raceplace.racing/download/12287/`.
+
+- Package SHA-256:
+  `9b896e930a1330faa453cf7497a8490064214e8de861b663c1b3b1e5803706b2`.
+- Files inspected: 42.
+- Vehicles: Ferrari 296 GT3, Ford Mustang GT3, Audi R8 LMS GT3 Evo II,
+  Porsche 992 GT3 R Rennsport and BMW M4 GT3 EVO.
+- Binary structure + decoded vehicle identity: 42/42 passed.
+- Decode followed by a no-change patch: 42/42 remained byte-identical.
+- Decoded field checks against the matching per-car `carsetuplimits`: 968.
+- Out-of-range values: 0.
+- Fields unavailable in the corresponding public range profile: 32 and
+  deliberately skipped.
+
+One integrity-manifested Monza file per audited vehicle is bundled solely as a
+same-car binary structure carrier. Its setup numbers are never SELF CALC
+inputs; every authorized profile field is newly generated and read back. The
+remaining package files are audit evidence only.
+
+## Fine-tuning safety
+
+The codec does not expose damper fields `#2` and `#4` as fast bump/rebound:
+public slider-diff verification identifies those as underlying fixed rates.
+Adjustable slow bump/rebound are fields `#1` and `#3`.
+
+ARB writing is enabled only when `carsetuplimits` exposes the physical N/m
+scale stored by the packed binary field. Click-only ARB profiles are skipped.
+Engine-map and brake-pressure writing are excluded until their unit/index
+mapping is independently verified.
+
+Every changed export must be re-decoded, match the original vehicle signature,
+match requested values, remain within the pinned per-car ranges and leave
+unmodified decoded knobs unchanged.
+
+## Automated verification and release
+
+`scripts/verify_source.py` fails closed on inventory counts, duplicate IDs,
+thumbnail coverage/hosts, exact layout/profile coverage, all 8,520 vehicle ×
+layout × mode routes, binary/range identity counts and the pinned range dataset
+SHA-256. It calculates and range/step-checks 8,160 SELF-CALC routes
+(68 range identities × 24 layouts × 5 modes), verifies 127,560 generated values,
+compares 3,984 FAST CONTROL stability relations and checks Mustang FAST ATTACK
+TC `1` on all 24 layouts. The 360 routes of the three unverified tuned variants
+must refuse rather than borrow the stock variant's limits.
+
+The GitHub workflow verifies the source ZIP hash, extracts a fresh `project/`,
+compares it with the checked-out source, runs Gradle 8.13 without build cache on
+JDK 17 / Android 35, executes unit tests and lint, reconstructs the release JKS
+from repository secrets, verifies alias `acevosetup`, builds the signed release,
+and verifies the APK certificate against public `EXPECTED_CERT_SHA256` before
+uploading the APK and reports.
