@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "gameVersion": "0.8.1",
+  "purpose": "binary structure only; numeric setup values are never SELF CALC inputs",
+  "packageSource": "https://raceplace.racing/download/12287/",
+  "vehicles": [
+    {
+      "vehicleId": "audi-r8-lms-gt3-evo-ii",
+      "asset": "structure-carriers/audi-r8-lms-gt3-evo-ii.carsetup",
+      "sha256": "2034b41ee592b801db8480840eefbe455811c2429a7b5496786409c846ce1b50",
+      "signature": "ks_audi_r8_lms_gt3_evo_2_preset_r8gt3_mech_1_preset_r8gt3_visual_1"
+    },
+    {
+      "vehicleId": "bmw-m4-gt3-evo",
+      "asset": "structure-carriers/bmw-m4-gt3-evo.carsetup",
+      "sha256": "f6e4d6cfe08115b9fe6375a73efa2d8df00aa051188b0a77ffd8d2fa10082ac4",
+      "signature": "ks_bmw_m4_gt3_preset_m4gt3_mech_1_preset_m4gt3_visual_1"
+    },
+    {
+      "vehicleId": "ferrari-296-gt3",
+      "asset": "structure-carriers/ferrari-296-gt3.carsetup",
+      "sha256": "ed060e11a03c2c761cf448af28762253e6cfce23eeb96ca221fb006c0a619a9f",
+      "signature": "ks_ferrari_296_gt3_preset_296gt3_mech_1_preset_296gt3_visual_1"
+    },
+    {
+      "vehicleId": "ford-mustang-gt3",
+      "asset": "structure-carriers/ford-mustang-gt3.carsetup",
+      "sha256": "543f871dfabeedb5f1c7ceb7ad04766e97e0be3c014ea0b362777c9d0e0b73a1",
+      "signature": "ks_ford_mustang_gt3_preset_msggt3_mech_1_preset_msggt3_visual_1"
+    },
+    {
+      "vehicleId": "porsche-992-gt3-r-rennsport",
+      "asset": "structure-carriers/porsche-992-gt3-r-rennsport.carsetup",
+      "sha256": "084ff4769daa4f197f5d84df9cb7ceb444e591b21e53c22a7938955b30c4c2aa",
+      "signature": "ks_porsche_992_gt3_r_rennsport_preset_992ren_mech_1_preset_992ren_visual_1"
+    }
+  ]
+}
