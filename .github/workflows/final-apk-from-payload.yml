@@ -38,7 +38,8 @@ jobs:
           set -euo pipefail
           : > /tmp/final.b64
           cat ci/final.part00.txt >> /tmp/final.b64
-          head -c 8000 ci/final.part01.txt >> /tmp/final.b64
+          cat ci/final.part00a.txt >> /tmp/final.b64
+          cat ci/final.part00b.txt >> /tmp/final.b64
           cat .finalbuild/c1.txt >> /tmp/final.b64
           cat .build-payload/chunk_02.b64 >> /tmp/final.b64
           cat .build-payload/chunk_03.b64 >> /tmp/final.b64
