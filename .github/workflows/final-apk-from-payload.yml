@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -32,30 +32,15 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
-      - name: Reconstruct and verify exact FINAL source
+      - name: Verify exact FINAL source
         shell: bash
         run: |
           set -euo pipefail
-          : > /tmp/final.b64
-          cat ci/final.part00.txt >> /tmp/final.b64
-          cat ci/final.part00a.txt >> /tmp/final.b64
-          cat ci/final.part00b0.txt >> /tmp/final.b64
-          cat ci/final.part00b1.txt >> /tmp/final.b64
-          cat ci/final.part00b2.txt >> /tmp/final.b64
-          cat ci/final.part00b3.txt >> /tmp/final.b64
-          cat .finalbuild/c1.txt >> /tmp/final.b64
-          cat .build-payload/chunk_02.b64 >> /tmp/final.b64
-          cat .build-payload/chunk_03.b64 >> /tmp/final.b64
-          cat .finalpayload/part04.b64 >> /tmp/final.b64
-          cat .finalpayload/part05.b64 >> /tmp/final.b64
-          cat .final-payload/p6.b64 >> /tmp/final.b64
-          test "$(wc -c < /tmp/final.b64)" -eq 102320
-          base64 -d /tmp/final.b64 > /tmp/final.zip
-          echo "a0af63422471b3d2a595a1a11f6c1b3eb97a7962ba9174599687402b4ba7dc8b  /tmp/final.zip" | sha256sum -c -
-          unzip -t /tmp/final.zip
+          echo "a0af63422471b3d2a595a1a11f6c1b3eb97a7962ba9174599687402b4ba7dc8b  exact_payload.zip" | sha256sum -c -
+          unzip -t exact_payload.zip
           rm -rf finalapp
           mkdir finalapp
-          unzip -q /tmp/final.zip -d finalapp
+          unzip -q exact_payload.zip -d finalapp
 
       - name: Build installable APK
         shell: bash
