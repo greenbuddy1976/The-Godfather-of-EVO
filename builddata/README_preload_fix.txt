@@ -1,0 +1,1 @@
+Preloaded setup archive is reconstructed from verified base64 chunks part00..part04. The workflow checks exact decoded size 16361 bytes, ZIP integrity, 31 .carsetup files, and the Golden Mustang setup before building.

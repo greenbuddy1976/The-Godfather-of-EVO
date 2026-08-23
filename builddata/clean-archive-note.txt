@@ -1,0 +1,1 @@
+The binary preload archive is replaced through the Git data API to preserve exact bytes.
