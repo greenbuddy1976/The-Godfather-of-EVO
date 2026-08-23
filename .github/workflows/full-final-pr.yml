@@ -5,7 +5,14 @@ on:
     branches: [main]
     paths:
       - 'project/**'
-      - 'builddata/preloaded-setups.zip'
+      - 'builddata/exact.00'
+      - 'builddata/exact.01'
+      - 'builddata/exact.02'
+      - 'builddata/exact.03'
+      - 'builddata/exact.04'
+      - 'builddata/exact.05'
+      - 'builddata/exact.06'
+      - 'builddata/exact.07'
       - '.github/workflows/full-final-pr.yml'
 
 permissions:
@@ -25,8 +32,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p project/app/src/main/assets/preloaded-setups
-          unzip -t builddata/preloaded-setups.zip >/dev/null
-          unzip -q builddata/preloaded-setups.zip -d project/app/src/main/assets/preloaded-setups
+          cat builddata/exact.00 builddata/exact.01 builddata/exact.02 builddata/exact.03 \
+              builddata/exact.04 builddata/exact.05 builddata/exact.06 builddata/exact.07 \
+            | base64 --decode > "$RUNNER_TEMP/preloaded-setups.zip"
+          unzip -t "$RUNNER_TEMP/preloaded-setups.zip" >/dev/null
+          unzip -q "$RUNNER_TEMP/preloaded-setups.zip" -d project/app/src/main/assets/preloaded-setups
           test "$(find project/app/src/main/assets/preloaded-setups -maxdepth 1 -name '*.carsetup' | wc -l)" -eq 31
           test -s project/app/src/main/assets/preloaded-setups/Mustang_GT3_Nurburgring_Touristenfahrten_FAST_CONTROL.carsetup
 
