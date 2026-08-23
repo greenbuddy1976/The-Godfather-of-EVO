@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - 'project/**'
-      - 'builddata/preloaded-setups.zip.b64'
+      - 'builddata/preloaded-setups.zip'
       - '.github/workflows/full-final-pr.yml'
 
 permissions:
@@ -25,17 +25,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p project/app/src/main/assets/preloaded-setups
-          python3 - <<'PY'
-          import base64, pathlib, re, os
-          src = pathlib.Path('builddata/preloaded-setups.zip.b64').read_text(encoding='utf-8')
-          clean = ''.join(re.findall(r'[A-Za-z0-9+/=]', src))
-          clean += '=' * ((4 - len(clean) % 4) % 4)
-          data = base64.b64decode(clean, validate=False)
-          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'preloaded-setups.zip'
-          out.write_bytes(data)
-          PY
-          unzip -t "$RUNNER_TEMP/preloaded-setups.zip" >/dev/null
-          unzip -q "$RUNNER_TEMP/preloaded-setups.zip" -d project/app/src/main/assets/preloaded-setups
+          unzip -t builddata/preloaded-setups.zip >/dev/null
+          unzip -q builddata/preloaded-setups.zip -d project/app/src/main/assets/preloaded-setups
           test "$(find project/app/src/main/assets/preloaded-setups -maxdepth 1 -name '*.carsetup' | wc -l)" -eq 31
           test -s project/app/src/main/assets/preloaded-setups/Mustang_GT3_Nurburgring_Touristenfahrten_FAST_CONTROL.carsetup
 
