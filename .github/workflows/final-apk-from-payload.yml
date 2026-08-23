@@ -1,11 +1,8 @@
-name: Build FINAL APK from payload
+name: Build FINAL APK exact
 
 on:
   pull_request:
     branches: [main]
-    paths:
-      - '.build-payload/**'
-      - '.github/workflows/final-apk-from-payload.yml'
   workflow_dispatch:
 
 permissions:
@@ -35,14 +32,25 @@ jobs:
           yes | sdkmanager --licenses >/dev/null || true
           sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
-      - name: Reconstruct FINAL source ZIP
+      - name: Reconstruct and verify exact FINAL source
         shell: bash
         run: |
           set -euo pipefail
-          cat .build-payload/chunk_*.b64 | tr -d '\n\r ' | base64 -d > /tmp/final.zip
-          echo "Payload SHA256: $(sha256sum /tmp/final.zip | cut -d' ' -f1)"
+          : > /tmp/final.b64
+          cat ci/final.part00.txt >> /tmp/final.b64
+          head -c 8000 ci/final.part01.txt >> /tmp/final.b64
+          cat .finalbuild/c1.txt >> /tmp/final.b64
+          cat .build-payload/chunk_02.b64 >> /tmp/final.b64
+          cat .build-payload/chunk_03.b64 >> /tmp/final.b64
+          cat .finalpayload/part04.b64 >> /tmp/final.b64
+          cat .finalpayload/part05.b64 >> /tmp/final.b64
+          cat .final-payload/p6.b64 >> /tmp/final.b64
+          test "$(wc -c < /tmp/final.b64)" -eq 102320
+          base64 -d /tmp/final.b64 > /tmp/final.zip
+          echo "a0af63422471b3d2a595a1a11f6c1b3eb97a7962ba9174599687402b4ba7dc8b  /tmp/final.zip" | sha256sum -c -
           unzip -t /tmp/final.zip
-          mkdir -p finalapp
+          rm -rf finalapp
+          mkdir finalapp
           unzip -q /tmp/final.zip -d finalapp
 
       - name: Build installable APK
