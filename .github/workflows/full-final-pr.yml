@@ -5,14 +5,7 @@ on:
     branches: [main]
     paths:
       - 'project/**'
-      - 'builddata/exact.00'
-      - 'builddata/exact.01'
-      - 'builddata/exact.02'
-      - 'builddata/exact.03'
-      - 'builddata/exact.04'
-      - 'builddata/exact.05'
-      - 'builddata/exact.06'
-      - 'builddata/exact.07'
+      - 'builddata/preloaded-setups.zip.b64'
       - '.github/workflows/full-final-pr.yml'
 
 permissions:
@@ -32,9 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p project/app/src/main/assets/preloaded-setups
-          cat builddata/exact.00 builddata/exact.01 builddata/exact.02 builddata/exact.03 \
-              builddata/exact.04 builddata/exact.05 builddata/exact.06 builddata/exact.07 \
-            | base64 --decode > "$RUNNER_TEMP/preloaded-setups.zip"
+          base64 --decode builddata/preloaded-setups.zip.b64 > "$RUNNER_TEMP/preloaded-setups.zip"
           unzip -t "$RUNNER_TEMP/preloaded-setups.zip" >/dev/null
           unzip -q "$RUNNER_TEMP/preloaded-setups.zip" -d project/app/src/main/assets/preloaded-setups
           test "$(find project/app/src/main/assets/preloaded-setups -maxdepth 1 -name '*.carsetup' | wc -l)" -eq 31
