@@ -25,8 +25,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p project/app/src/main/assets/preloaded-setups
-          unzip -t builddata/preloaded-setups.zip >/dev/null
-          unzip -q builddata/preloaded-setups.zip -d project/app/src/main/assets/preloaded-setups
+          cat builddata/preloads.part00 builddata/preloads.part01 \
+            | base64 --decode > "$RUNNER_TEMP/preloaded-setups.zip"
+          echo "2df0a589073f70b987238b926c271957aac81c3c9195887a0365bd3e7c56d526  $RUNNER_TEMP/preloaded-setups.zip" | sha256sum -c -
+          unzip -t "$RUNNER_TEMP/preloaded-setups.zip" >/dev/null
+          unzip -q "$RUNNER_TEMP/preloaded-setups.zip" -d project/app/src/main/assets/preloaded-setups
           test "$(find project/app/src/main/assets/preloaded-setups -maxdepth 1 -name '*.carsetup' | wc -l)" -eq 31
           test -s project/app/src/main/assets/preloaded-setups/Mustang_GT3_Nurburgring_Touristenfahrten_FAST_CONTROL.carsetup
 
