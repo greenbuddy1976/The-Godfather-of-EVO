@@ -1,0 +1,64 @@
+name: Build FINAL APK from payload
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.build-payload/**'
+      - '.github/workflows/final-apk-from-payload.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-final-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Configure Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android 36 components
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Reconstruct FINAL source ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .build-payload/chunk_*.b64 | tr -d '\n\r ' | base64 -d > /tmp/final.zip
+          echo "Payload SHA256: $(sha256sum /tmp/final.zip | cut -d' ' -f1)"
+          unzip -t /tmp/final.zip
+          mkdir -p finalapp
+          unzip -q /tmp/final.zip -d finalapp
+
+      - name: Build installable APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x finalapp/gradlew
+          cd finalapp
+          ./gradlew --no-daemon assembleDebug
+          test -s app/build/outputs/apk/debug/app-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk ../The_Godfather_of_EVO_FINAL_v1.8.0.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: The_Godfather_of_EVO_FINAL_v1.8.0
+          path: The_Godfather_of_EVO_FINAL_v1.8.0.apk
+          if-no-files-found: error
+          retention-days: 30
