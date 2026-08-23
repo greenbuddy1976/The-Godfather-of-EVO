@@ -5,7 +5,10 @@ on:
     branches: [main]
     paths:
       - 'project/**'
-      - 'builddata/good*.b64'
+      - 'builddata/preloads.part00'
+      - 'builddata/preloads.part01'
+      - 'builddata/preloads.part02'
+      - 'builddata/preloads.part03'
       - '.github/workflows/full-final-pr.yml'
 
 permissions:
@@ -25,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p project/app/src/main/assets/preloaded-setups
-          cat builddata/good00.b64 builddata/good01.b64 builddata/good02.b64 builddata/good03.b64 \
+          cat builddata/preloads.part00 builddata/preloads.part01 builddata/preloads.part02 builddata/preloads.part03 \
             | base64 --decode > "$RUNNER_TEMP/preloaded-setups.zip"
           echo "2df0a589073f70b987238b926c271957aac81c3c9195887a0365bd3e7c56d526  $RUNNER_TEMP/preloaded-setups.zip" | sha256sum -c -
           unzip -t "$RUNNER_TEMP/preloaded-setups.zip" >/dev/null
