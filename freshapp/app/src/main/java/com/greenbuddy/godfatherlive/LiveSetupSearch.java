@@ -94,7 +94,7 @@ final class LiveSetupSearch {
     private static Round fetchRound(String selectedCar, String selectedTrack, long nonce) {
         Round round = new Round();
         try {
-            round.setups.addAll(fetchMarket(selectedCar, selectedTrack, nonce));
+            round.setups.addAll(fetchMarket(selectedCar, selectedTrack));
         } catch (Exception ex) {
             round.notices.add("SetupsMarket: " + safeMessage(ex));
         }
@@ -110,9 +110,8 @@ final class LiveSetupSearch {
         return round;
     }
 
-    private static List<SourceSetup> fetchMarket(String selectedCar, String selectedTrack, long nonce) throws Exception {
-        byte[] payload = getBytes(MARKET_API + "&_live=" + nonce, MARKET_KEY, 3_000_000,
-                "application/json");
+    private static List<SourceSetup> fetchMarket(String selectedCar, String selectedTrack) throws Exception {
+        byte[] payload = getBytes(MARKET_API, MARKET_KEY, 3_000_000, "application/json");
         JSONArray rows = new JSONArray(new String(payload, StandardCharsets.UTF_8));
         List<SourceSetup> setups = new ArrayList<>();
         for (int i = 0; i < rows.length(); i++) {
