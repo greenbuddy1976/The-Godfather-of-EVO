@@ -11,8 +11,8 @@ android {
         applicationId 'com.greenbuddy.godfatherlive'
         minSdk 26
         targetSdk 35
-        versionCode 21
-        versionName '2.1.0'
+        versionCode 22
+        versionName '2.1.1'
     }
 
     signingConfigs {
@@ -40,6 +40,15 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+}
+
+tasks.register('applySymptomFineTune', Exec) {
+    workingDir rootDir
+    commandLine 'python3', 'symptom_patch.py'
+}
+
+tasks.matching { it.name == 'preBuild' }.configureEach {
+    dependsOn tasks.named('applySymptomFineTune')
 }
 
 dependencies { testImplementation 'junit:junit:4.13.2' }
