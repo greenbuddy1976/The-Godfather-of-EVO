@@ -79,3 +79,5 @@ jobs:
           path: The_Godfather_of_EVO_2.2.0_FULL.apk
           if-no-files-found: error
           retention-days: 30
+
+# final full-source build trigger
